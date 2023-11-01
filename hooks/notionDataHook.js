@@ -417,7 +417,7 @@ export const useNotionData = url => {
     mData,
     jsonObject,
     rCRUDDING.current
-  ]
+  ];
 };
 
 const isNil = ( value ) => {
