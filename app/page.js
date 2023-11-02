@@ -1,11 +1,23 @@
 "use client"
 
 import {
-  DGMDCC_ID,
-  useNotionData,
-  EXPORT_DATA_VALUE,
-  EXPORT_DATA_TYPE,
-  DGMDCC_URL
+  BLOCK_TYPE_CHECKBOX,
+  BLOCK_TYPE_DATE,
+  BLOCK_TYPE_EMAIL,
+  BLOCK_TYPE_MULTI_SELECT,
+  BLOCK_TYPE_NUMBER,
+  BLOCK_TYPE_PHONE_NUMBER,
+  BLOCK_TYPE_RICH_TEXT,
+  BLOCK_TYPE_SELECT,
+  BLOCK_TYPE_STATUS,
+  BLOCK_TYPE_TITLE,
+  BLOCK_TYPE_URL,
+  DGMDCC_BLOCK_DATE_END,
+  DGMDCC_BLOCK_DATE_START,
+  DGMDCC_BLOCK_ID,
+  DGMDCC_BLOCK_TYPE,
+  DGMDCC_BLOCK_VALUE,
+  useNotionData
 } from '../hooks/notionDataHook.js';
 
 import {
@@ -22,24 +34,72 @@ export default function Home() {
     'http://localhost:3000/api/query?d=9c1a76dd5d1a4e93be590fd3ad3342d1&b=false&r=true' );
     // 'https://localhost:3000/api/prototype?i=36d25b62-70ac-4fcb-85c5-3acaf4f07429' );
 
-  const cbDeletePage = useCallback( (dbId, pageId) => {
-    nata.deletePage( dbId, pageId );
-  }, [
-    nata
-  ] );
-
   const cbUpdatePage = useCallback( (dbId, pageId) => {
-    const template = nata.getPageTemplate( dbId, !nata.isLiveData() );
-    addJunk( template );
-    nata.updatePage( dbId, pageId, template );
+    const updatePageObj = {
+      "Title": {
+        [DGMDCC_BLOCK_TYPE]: BLOCK_TYPE_TITLE,
+        [DGMDCC_BLOCK_VALUE]: "updated" + Math.floor(Math.random() * 100)
+       },
+    };
+    nata.updatePage( dbId, pageId, updatePageObj );
   }, [
     nata
   ] );
 
-  const cbInsertPage = useCallback( dbId => {
-    const template = nata.getPageTemplate( dbId, !nata.isLiveData() );
-    addJunk( template );
-    nata.insertPage( dbId, template );
+  const cbCreatePage = useCallback( dbId => {
+    const createPageObj = {
+      "Title": {
+        [DGMDCC_BLOCK_TYPE]: BLOCK_TYPE_TITLE,
+        [DGMDCC_BLOCK_VALUE]: "created"+ Math.floor(Math.random() * 100)
+       },
+      "yepchecky": {
+        [DGMDCC_BLOCK_TYPE]: BLOCK_TYPE_CHECKBOX,
+        [DGMDCC_BLOCK_VALUE]: true
+      },
+      "Tags": {
+        [DGMDCC_BLOCK_TYPE]: BLOCK_TYPE_MULTI_SELECT,
+        [DGMDCC_BLOCK_VALUE]: [
+         null,
+         "tag2"
+        ]
+      },
+      "Status": {
+        [DGMDCC_BLOCK_TYPE]: BLOCK_TYPE_STATUS,
+        [DGMDCC_BLOCK_VALUE]: "wakaka"
+      },
+      "numberfield": {
+        [DGMDCC_BLOCK_TYPE]: BLOCK_TYPE_NUMBER,
+        [DGMDCC_BLOCK_VALUE]: 42
+      },
+      "selecty": {
+        [DGMDCC_BLOCK_TYPE]: BLOCK_TYPE_SELECT,
+        [DGMDCC_BLOCK_VALUE]: "red"
+      },
+      "ringring": {
+        [DGMDCC_BLOCK_TYPE]: BLOCK_TYPE_PHONE_NUMBER,
+        [DGMDCC_BLOCK_VALUE]: "1234567890"
+      },
+      "kewl_urrrrls": {
+        [DGMDCC_BLOCK_TYPE]: BLOCK_TYPE_URL,
+        [DGMDCC_BLOCK_VALUE]: "ftp://warez.ie"
+      },
+      "yerrremails": {
+        [DGMDCC_BLOCK_TYPE]: BLOCK_TYPE_EMAIL,
+        [DGMDCC_BLOCK_VALUE]: "joemail<at>gmail.com"
+      },
+      "rich": {
+        [DGMDCC_BLOCK_TYPE]: BLOCK_TYPE_RICH_TEXT,
+        [DGMDCC_BLOCK_VALUE]: "rich text here, yes there is"
+      },
+      "mydate": {
+        [DGMDCC_BLOCK_TYPE]: BLOCK_TYPE_DATE,
+        [DGMDCC_BLOCK_VALUE]: {
+          [DGMDCC_BLOCK_DATE_START]: "2043-11-02T00:00:00.000-04:00",
+          // [DGMDCC_BLOCK_DATE_END]: "2093-11-02T00:00:00.000-04:00",
+        }
+      }
+    };
+    nata.createPage( dbId, createPageObj );
   }, [
     nata
   ] );
@@ -62,10 +122,10 @@ export default function Home() {
         <b>CRUD STATUS</b>: { crudding ? 'ACTIVE' : 'INACTIVE' }
       </div>
       <div
-        onClick={ () => cbInsertPage(dbId) }
+        onClick={ () => cbCreatePage(dbId) }
         style={linkStyle}
       >
-        INSERT
+        CREATE
       </div>
 
       {
@@ -81,18 +141,20 @@ export default function Home() {
               }}
               key={ i }
             >
-              { JSON.stringify( page ) }
+              <pre>
+              { JSON.stringify( page, null, 1 ) }
+              </pre>
               <div
                 style={{
-                  paddingTop: '5px',
+                  paddingTop: '2px',
                   display: 'flex',
                   flexDirection: 'row',
-                  gap: '5px'
+                  gap: '12px'
                 }}
               >
                 <div
                   onClick={ () => {
-                    cbDeletePage( dbId, page[DGMDCC_ID][EXPORT_DATA_VALUE] );
+                    nata.deletePage( dbId, page[DGMDCC_BLOCK_ID][DGMDCC_BLOCK_VALUE] );
                   } }
                   style={linkStyle}
                 >
@@ -100,11 +162,11 @@ export default function Home() {
                 </div>
                 <div
                   onClick={ () => {
-                    cbUpdatePage( dbId, page[DGMDCC_ID][EXPORT_DATA_VALUE] );
+                    cbUpdatePage( dbId, page[DGMDCC_BLOCK_ID][DGMDCC_BLOCK_VALUE] );
                   } }
                   style={linkStyle}                
                 >
-                MODIFY
+                UPDATE
                 </div>
               </div>
             </div>
@@ -121,37 +183,3 @@ const linkStyle = {
   textDecoration: 'underline',
   cursor: 'pointer'
 };
-
-
-const addJunk = ( template ) => {
-  Object.values( template ).forEach( value => {
-    if (![DGMDCC_ID, DGMDCC_URL].includes( value[EXPORT_DATA_TYPE] )) {
-      if (Array.isArray( value[EXPORT_DATA_VALUE] )) {
-        value[EXPORT_DATA_VALUE] = [
-          makeRandoString( 6 )
-        ];
-      }
-      else if (Number. isFinite( value[EXPORT_DATA_VALUE] )) {
-        value[EXPORT_DATA_VALUE] = Math.floor( Math.random() * 100 );
-      }
-      else if (typeof value[EXPORT_DATA_VALUE] === "boolean") {
-        value[EXPORT_DATA_VALUE] = !value[EXPORT_DATA_VALUE];
-      }
-      else {
-        value[EXPORT_DATA_VALUE] = makeRandoString( 6 );
-      }
-    }
-  } );
-};
-
-function makeRandoString(length) {
-  let result = '';
-  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  const charactersLength = characters.length;
-  let counter = 0;
-  while (counter < length) {
-    result += characters.charAt(Math.floor(Math.random() * charactersLength));
-    counter += 1;
-  }
-  return result;
-}

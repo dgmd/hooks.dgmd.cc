@@ -1,10 +1,8 @@
-"use client"
-
 import {
   useEffect,
-  useState,
   useMemo,
-  useRef
+  useRef,
+  useState
 } from 'react';
 
 const NOTION_RESULT_PRIMARY_DATABASE = 'NOTION_RESULT_PRIMARY_DATABASE';
@@ -20,17 +18,35 @@ export const NOTION_REQUEST = 'NOTION_REQUEST';
 export const NOTION_QUERY = 'NOTION_QUERY';
 export const NOTION_DATABASE = 'NOTION_DATABASE';
 
-export const EXPORT_DATA_TYPE = 'TYPE';
-export const EXPORT_DATA_VALUE = 'VALUE';
-export const DGMDCC_ID = 'id';
-export const DGMDCC_URL = 'url';
+export const DGMDCC_BLOCK_TYPE = 'TYPE';
+export const DGMDCC_BLOCK_VALUE = 'VALUE';
+
+export const DGMDCC_BLOCK_ID = 'id';
+export const DGMDCC_BLOCK_URL = 'url';
+
+export const BLOCK_TYPE_CREATED_TIME = 'created_time';
+export const BLOCK_TYPE_LAST_EDITED_TIME = 'last_edited_time'
+export const BLOCK_TYPE_EMAIL = 'email';
+export const BLOCK_TYPE_PHONE_NUMBER = 'phone_number';
+export const BLOCK_TYPE_URL = 'url';
+export const BLOCK_TYPE_SELECT = 'select';
+export const BLOCK_TYPE_STATUS = 'status';
+export const BLOCK_TYPE_TITLE = 'title';
+export const BLOCK_TYPE_RICH_TEXT = 'rich_text';
+export const BLOCK_TYPE_NUMBER = 'number';
+export const BLOCK_TYPE_MULTI_SELECT = 'multi_select';
+export const BLOCK_TYPE_CHECKBOX = 'checkbox';
+export const BLOCK_TYPE_DATE = 'date';
+
+export const DGMDCC_BLOCK_DATE_START = 'start';
+export const DGMDCC_BLOCK_DATE_END = 'end';
 
 const URL_SEARCH_PARAM_ACTION = 'a';
 const URL_SEARCH_PARAM_DELETE_BLOCK_ID = 'dbi';
 const URL_SEARCH_VALUE_ACTION_DELETE = 'd';
-const URL_SEARCH_VALUE_ACTION_APPEND = 'a';
-const URL_SEARCH_PARAM_APPEND_BLOCK_ID = 'abi';
-const URL_SEARCH_PARAM_APPEND_CHILDREN = 'ac';
+const URL_SEARCH_VALUE_ACTION_CREATE = 'c';
+const URL_SEARCH_PARAM_CREATE_BLOCK_ID = 'cbi';
+const URL_SEARCH_PARAM_CREATE_CHILDREN = 'cc';
 const URL_SEARCH_VALUE_ACTION_UPDATE = 'u';
 const URL_SEARCH_PARAM_UPDATE_BLOCK_ID = 'ubi';
 const URL_SEARCH_PARAM_UPDATE_BLOCK = 'ub';
@@ -152,8 +168,8 @@ export const useNotionData = url => {
             for (let i = 0; i < fieldsLen; i++) {
               const field = fields[i];
               const direction = directions[i] ? 1 : -1;
-              const aVal = a[field][EXPORT_DATA_VALUE];
-              const bVal = b[field][EXPORT_DATA_VALUE];
+              const aVal = a[field][DGMDCC_BLOCK_VALUE];
+              const bVal = b[field][DGMDCC_BLOCK_VALUE];
               if (aVal < bVal) {
                 return -1 * direction;
               }
@@ -202,10 +218,10 @@ export const useNotionData = url => {
 
       const db = func.getDb( dbId );
       const dbBlocks = db[NOTION_RESULT_BLOCKS];
-      const pageIdx = dbBlocks.findIndex( page => {
-        const rowIdData = page[DGMDCC_ID];
-        const rowId = rowIdData[EXPORT_DATA_VALUE];
-        return rowId === pageId;
+      const pageIdx = dbBlocks.findIndex( block => {
+        const blockIdData = block[DGMDCC_BLOCK_ID];
+        const blockId = blockIdData[DGMDCC_BLOCK_VALUE];
+        return blockId === pageId;
       } );
 
       if (pageIdx < 0) {
@@ -215,10 +231,11 @@ export const useNotionData = url => {
   
       rCRUDDING.current = true;
       if (func.isLiveData()) {
-        const rowIdData = dbBlocks[pageIdx][DGMDCC_ID][EXPORT_DATA_VALUE];
+        const blockIdData = dbBlocks[pageIdx][DGMDCC_BLOCK_ID][DGMDCC_BLOCK_VALUE];
+        console.log( 'delete', blockIdData );
         const updateUrl = new URL( '/api/update', urlObj.origin );
         updateUrl.searchParams.append( URL_SEARCH_PARAM_ACTION, URL_SEARCH_VALUE_ACTION_DELETE );
-        updateUrl.searchParams.append( URL_SEARCH_PARAM_DELETE_BLOCK_ID, rowIdData );
+        updateUrl.searchParams.append( URL_SEARCH_PARAM_DELETE_BLOCK_ID, blockIdData );
         setCrudURL( x => updateUrl.href );
       }
       else {
@@ -232,7 +249,7 @@ export const useNotionData = url => {
       return rObj;
     };
 
-    func.insertPage = (dbId, rowData) => {
+    func.createPage = (dbId, pageBlockData) => {
       const rObj = {
         [CRUD_RESULT_SUCCESS]: false,
         [CRUD_ERROR]: null
@@ -250,20 +267,23 @@ export const useNotionData = url => {
 
       if (func.isLiveData()) {
         const list = {};
-        for (const [key, value] of Object.entries(rowData)) {
-          const mmBlock = mmBlocktoNotionBlock( value );
-          if (!isNil(mmBlock)) {
-            list[key] = mmBlock;
+        for (const [key, userBlock] of Object.entries(pageBlockData)) {
+          if (![DGMDCC_BLOCK_ID, DGMDCC_BLOCK_URL].includes(key)) {
+            const nBlock = mmBlocktoNotionBlock( userBlock );
+            if (!isNil(nBlock)) {
+              list[key] = nBlock;
+            }
           }
         }
+        console.log( 'create:', list );
         const updateUrl = new URL( '/api/update', urlObj.origin );
-        updateUrl.searchParams.append( URL_SEARCH_PARAM_ACTION, URL_SEARCH_VALUE_ACTION_APPEND );
-        updateUrl.searchParams.append( URL_SEARCH_PARAM_APPEND_BLOCK_ID, dbId );
-        updateUrl.searchParams.append( URL_SEARCH_PARAM_APPEND_CHILDREN, JSON.stringify(list) );
+        updateUrl.searchParams.append( URL_SEARCH_PARAM_ACTION, URL_SEARCH_VALUE_ACTION_CREATE );
+        updateUrl.searchParams.append( URL_SEARCH_PARAM_CREATE_BLOCK_ID, dbId );
+        updateUrl.searchParams.append( URL_SEARCH_PARAM_CREATE_CHILDREN, JSON.stringify(list) );
         setCrudURL( x => updateUrl.href );
       }
       else {
-        dbBlocks.unshift( rowData );
+        dbBlocks.unshift( pageBlockData );
         setJsonObject( x => JSON.parse( JSON.stringify( rJsonObject.current ) ) );
 
         rCRUDDING.current = false;
@@ -272,7 +292,7 @@ export const useNotionData = url => {
       return rObj;
     };
 
-    func.updatePage = (dbId, pageId, updatesObj) => {
+    func.updatePage = (dbId, pageId, pageBlockData) => {
 
       const rObj = {
         [CRUD_RESULT_SUCCESS]: false,
@@ -286,10 +306,10 @@ export const useNotionData = url => {
 
       const db = func.getDb( dbId );
       const dbBlocks = db[NOTION_RESULT_BLOCKS];
-      const pageIdx = dbBlocks.findIndex( page => {
-        const rowIdData = page[DGMDCC_ID];
-        const rowId = rowIdData[EXPORT_DATA_VALUE];
-        return rowId === pageId;
+      const pageIdx = dbBlocks.findIndex( block => {
+        const blockIdData = block[DGMDCC_BLOCK_ID];
+        const blockId = blockIdData[DGMDCC_BLOCK_VALUE];
+        return blockId === pageId;
       } );
 
       if (pageIdx < 0) {
@@ -300,14 +320,17 @@ export const useNotionData = url => {
       rCRUDDING.current = true;
 
       if (func.isLiveData()) {
-        const rowIdData = dbBlocks[pageIdx][DGMDCC_ID][EXPORT_DATA_VALUE];
+        const rowIdData = dbBlocks[pageIdx][DGMDCC_BLOCK_ID][DGMDCC_BLOCK_VALUE];
         const list = {};
-        for (const [key, value] of Object.entries(updatesObj)) {
-          const mmBlock = mmBlocktoNotionBlock( value );
-          if (!isNil(mmBlock)) {
-            list[key] = mmBlock;
+        for (const [key, userBlock] of Object.entries(pageBlockData)) {
+          if (![DGMDCC_BLOCK_ID, DGMDCC_BLOCK_URL].includes(key)) {
+            const mmBlock = mmBlocktoNotionBlock( userBlock );
+            if (!isNil(mmBlock)) {
+              list[key] = mmBlock;
+            }
           }
         }
+        console.log( 'update', list );
         const updateUrl = new URL( '/api/update', urlObj.origin );
         updateUrl.searchParams.append( URL_SEARCH_PARAM_ACTION, URL_SEARCH_VALUE_ACTION_UPDATE );
         updateUrl.searchParams.append( URL_SEARCH_PARAM_UPDATE_BLOCK_ID, rowIdData );
@@ -322,52 +345,6 @@ export const useNotionData = url => {
         rObj[CRUD_RESULT_SUCCESS] = true;
       }
       return rObj;
-    };
-
-    //todo: standard checks for null, etc on
-    func.getPageTemplate = (dbId, makeId) => {
-      const db = func.getDb( dbId );
-      const dbBlocks = db[NOTION_RESULT_BLOCKS];
-      const blockZed = dbBlocks[0];
-      const blockClone = JSON.parse( JSON.stringify(blockZed) );
-
-      Object.values(blockClone).forEach( value => {
-        const valValue = value[EXPORT_DATA_VALUE];
-        const valType = value[EXPORT_DATA_TYPE];
-        if (valType === DGMDCC_ID || valType === DGMDCC_URL) {
-        }
-        else {
-          if (Array.isArray(valValue)) {
-            value[EXPORT_DATA_VALUE] = [];
-          }
-          else if (Number.isFinite(valValue)) {
-            value[EXPORT_DATA_VALUE] = -1;
-          }
-          else if (typeof valValue === 'boolean') {
-            value[EXPORT_DATA_VALUE] = false;
-          }
-          else {
-            value[EXPORT_DATA_VALUE] = '';
-          }
-        }
-      });
-
-      if (makeId) {
-        blockClone[DGMDCC_ID] = {
-          [EXPORT_DATA_TYPE]: DGMDCC_ID,
-          [EXPORT_DATA_VALUE]: crypto.randomUUID()
-        };
-        blockClone[DGMDCC_URL] = {
-          [EXPORT_DATA_TYPE]: DGMDCC_URL,
-          [EXPORT_DATA_VALUE]: crypto.randomUUID()
-        };
-      }
-      else {
-        delete blockClone[DGMDCC_ID];
-        delete blockClone[DGMDCC_URL];
-      }
-
-      return blockClone;
     };
 
     return func;
@@ -397,6 +374,7 @@ export const useNotionData = url => {
     async function fetchData() {
       const crudResponse = await fetch( crudURL );
       const parsedCrudJsonObject = await crudResponse.json( );
+      console.log( 'result', parsedCrudJsonObject );
 
       const response = await fetch( url );
       const parsedJsonObject = await response.json( );
@@ -425,64 +403,94 @@ const isNil = ( value ) => {
 };
 
 const mmBlocktoNotionBlock = ( block ) => {
-  const type = block[EXPORT_DATA_TYPE];
-  const value = block[EXPORT_DATA_VALUE];
+  const type = block[DGMDCC_BLOCK_TYPE];
+  const value = block[DGMDCC_BLOCK_VALUE];
 
-  if (type === 'rich_text') {
-    return {
-      "rich_text": [ {
-        "text": {
-          "content": value
-        }
-      } ]
-    };
+  if ([BLOCK_TYPE_CREATED_TIME, BLOCK_TYPE_LAST_EDITED_TIME].includes( type )) {
+    return null;
   }
-  if (type === 'title') {
-    return {
-      "title": [ {
-        "text": {
-          "content": value
-        }
-      } ]
-    };
-  }
-  if (type === 'select') {
-    return {
-      "select": {
-        "name": value
-      }
-    };
-  }
-  if (type === 'number') {
-    return {
-      "number": value
-    };
-  }
-  if (type === 'multi_select') {
 
-    const selects = value.map( v => {
-      return {
-        "name": v
+  if (BLOCK_TYPE_DATE === type) {
+    const startDateValue = new Date( value[DGMDCC_BLOCK_DATE_START] );
+    if (isFinite(startDateValue)) {
+      const dateObj = {
+        [DGMDCC_BLOCK_DATE_START]: startDateValue.toISOString()
       };
-    } );
-
-    return {
-      "multi_select": selects
-    };
-  }
-  if (type === 'checkbox') {
-    return {
-      "checkbox": value
-    };
-  }
-  if (type === 'status') {
-    return {
-      'status': {
-        "name": "In progress"
+      const endDateValue = new Date( value[DGMDCC_BLOCK_DATE_END] );
+      if (isFinite(endDateValue)) {
+        dateObj[DGMDCC_BLOCK_DATE_END] = endDateValue.toISOString();
       }
+      return {
+        [type]: dateObj
+      };
+    }
+  }
+
+  if ([BLOCK_TYPE_TITLE, BLOCK_TYPE_RICH_TEXT].includes( type )) {
+    const stringValue = String( value );
+    return {
+      [type]: [ {
+        "text": {
+          "content": stringValue
+        }
+      } ]
+    };
+  }
+
+  if ([BLOCK_TYPE_PHONE_NUMBER, BLOCK_TYPE_URL, BLOCK_TYPE_EMAIL].includes( type )) {
+    const stringValue = String( value );
+    return {
+      [type]: stringValue
+    };
+  }
+
+  if (type === BLOCK_TYPE_SELECT || type === BLOCK_TYPE_STATUS) {
+    const stringValue = String( value );
+    return {
+      [type]: {
+        "name": stringValue
+      }
+    };
+  }
+  if (type === BLOCK_TYPE_NUMBER) {
+    const numValue = Number( value );
+    if (isFinite(numValue)) {
+      return {
+        [type]: numValue
+      };
+    }
+  }
+  if (type === BLOCK_TYPE_MULTI_SELECT) {
+    if (Array.isArray(value)) {
+      const selects = value.map( v => {
+        return {
+          "name": String(v)
+        };
+      } );
+
+      return {
+        [type]: selects
+      };
+    }
+  }
+  if (type === BLOCK_TYPE_CHECKBOX) {
+    const booleanValue = deriveBoolean( value );
+    return {
+      [type]: booleanValue
     };
   }
   
   return null;
 };
 
+const deriveBoolean = ( value ) => {
+  const str = String( value );
+  const strLowTrim = str.toLowerCase().trim();
+  return [
+    'true',
+    '1',
+    'yes',
+    'y',
+    'on'
+  ].includes( strLowTrim );
+};
