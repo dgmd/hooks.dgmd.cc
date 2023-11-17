@@ -17,7 +17,9 @@ import {
   DGMDCC_BLOCK_ID,
   DGMDCC_BLOCK_TYPE,
   DGMDCC_BLOCK_VALUE,
-  useNotionData
+  DGMDCC_BLOCK_METADATA,
+  useNotionData,
+  getPageId
 } from '../hooks/notionDataHook.js';
 
 import {
@@ -31,12 +33,11 @@ export default function Home() {
     nataJSON,
     crudding
   ] = useNotionData(
-    'http://localhost:3000/api/query?d=9c1a76dd5d1a4e93be590fd3ad3342d1&b=false&r=true' );
-    // 'https://localhost:3000/api/prototype?i=36d25b62-70ac-4fcb-85c5-3acaf4f07429' );
+    'http://localhost:3000/api/query?d=9892f85b6b5e460db15c61273042fe9d&b=false&r=true' );
 
   const cbUpdatePage = useCallback( (dbId, pageId) => {
     const updatePageObj = {
-      "Title": {
+      "Name": {
         [DGMDCC_BLOCK_TYPE]: BLOCK_TYPE_TITLE,
         [DGMDCC_BLOCK_VALUE]: "updated" + Math.floor(Math.random() * 100)
        },
@@ -48,56 +49,56 @@ export default function Home() {
 
   const cbCreatePage = useCallback( dbId => {
     const createPageObj = {
-      "Title": {
-        [DGMDCC_BLOCK_TYPE]: BLOCK_TYPE_TITLE,
-        [DGMDCC_BLOCK_VALUE]: "created"+ Math.floor(Math.random() * 100)
-       },
-      "yepchecky": {
-        [DGMDCC_BLOCK_TYPE]: BLOCK_TYPE_CHECKBOX,
-        [DGMDCC_BLOCK_VALUE]: true
-      },
-      "Tags": {
-        [DGMDCC_BLOCK_TYPE]: BLOCK_TYPE_MULTI_SELECT,
-        [DGMDCC_BLOCK_VALUE]: [
-         null,
-         "tag2"
-        ]
-      },
-      "Status": {
-        [DGMDCC_BLOCK_TYPE]: BLOCK_TYPE_STATUS,
-        [DGMDCC_BLOCK_VALUE]: "wakaka"
-      },
-      "numberfield": {
-        [DGMDCC_BLOCK_TYPE]: BLOCK_TYPE_NUMBER,
-        [DGMDCC_BLOCK_VALUE]: 42
-      },
-      "selecty": {
-        [DGMDCC_BLOCK_TYPE]: BLOCK_TYPE_SELECT,
-        [DGMDCC_BLOCK_VALUE]: "red"
-      },
-      "ringring": {
-        [DGMDCC_BLOCK_TYPE]: BLOCK_TYPE_PHONE_NUMBER,
-        [DGMDCC_BLOCK_VALUE]: "1234567890"
-      },
-      "kewl_urrrrls": {
-        [DGMDCC_BLOCK_TYPE]: BLOCK_TYPE_URL,
-        [DGMDCC_BLOCK_VALUE]: "ftp://warez.ie"
-      },
-      "yerrremails": {
-        [DGMDCC_BLOCK_TYPE]: BLOCK_TYPE_EMAIL,
-        [DGMDCC_BLOCK_VALUE]: "joemail<at>gmail.com"
-      },
-      "rich": {
+      "blurb": {
         [DGMDCC_BLOCK_TYPE]: BLOCK_TYPE_RICH_TEXT,
         [DGMDCC_BLOCK_VALUE]: "rich text here, yes there is"
       },
-      "mydate": {
-        [DGMDCC_BLOCK_TYPE]: BLOCK_TYPE_DATE,
-        [DGMDCC_BLOCK_VALUE]: {
-          [DGMDCC_BLOCK_DATE_START]: "2043-11-02T00:00:00.000-04:00",
-          // [DGMDCC_BLOCK_DATE_END]: "2093-11-02T00:00:00.000-04:00",
-        }
-      }
+      // "yepchecky": {
+      //   [DGMDCC_BLOCK_TYPE]: BLOCK_TYPE_CHECKBOX,
+      //   [DGMDCC_BLOCK_VALUE]: true
+      // },
+      // "Tags": {
+      //   [DGMDCC_BLOCK_TYPE]: BLOCK_TYPE_MULTI_SELECT,
+      //   [DGMDCC_BLOCK_VALUE]: [
+      //    null,
+      //    "tag2"
+      //   ]
+      // },
+      // "Status": {
+      //   [DGMDCC_BLOCK_TYPE]: BLOCK_TYPE_STATUS,
+      //   [DGMDCC_BLOCK_VALUE]: "wakaka"
+      // },
+      // "numberfield": {
+      //   [DGMDCC_BLOCK_TYPE]: BLOCK_TYPE_NUMBER,
+      //   [DGMDCC_BLOCK_VALUE]: 42
+      // },
+      // "selecty": {
+      //   [DGMDCC_BLOCK_TYPE]: BLOCK_TYPE_SELECT,
+      //   [DGMDCC_BLOCK_VALUE]: "red"
+      // },
+      // "ringring": {
+      //   [DGMDCC_BLOCK_TYPE]: BLOCK_TYPE_PHONE_NUMBER,
+      //   [DGMDCC_BLOCK_VALUE]: "1234567890"
+      // },
+      // "kewl_urrrrls": {
+      //   [DGMDCC_BLOCK_TYPE]: BLOCK_TYPE_URL,
+      //   [DGMDCC_BLOCK_VALUE]: "ftp://warez.ie"
+      // },
+      // "yerrremails": {
+      //   [DGMDCC_BLOCK_TYPE]: BLOCK_TYPE_EMAIL,
+      //   [DGMDCC_BLOCK_VALUE]: "joemail<at>gmail.com"
+      // },
+      // "rich": {
+      //   [DGMDCC_BLOCK_TYPE]: BLOCK_TYPE_RICH_TEXT,
+      //   [DGMDCC_BLOCK_VALUE]: "rich text here, yes there is"
+      // },
+      // "mydate": {
+      //   [DGMDCC_BLOCK_TYPE]: BLOCK_TYPE_DATE,
+      //   [DGMDCC_BLOCK_VALUE]: {
+      //     [DGMDCC_BLOCK_DATE_START]: "2043-11-02T00:00:00.000-04:00",
+      //     // [DGMDCC_BLOCK_DATE_END]: "2093-11-02T00:00:00.000-04:00",
+      //   }
+      // }
     };
     nata.createPage( dbId, createPageObj );
   }, [
@@ -154,7 +155,7 @@ export default function Home() {
               >
                 <div
                   onClick={ () => {
-                    nata.deletePage( dbId, page[DGMDCC_BLOCK_ID][DGMDCC_BLOCK_VALUE] );
+                    nata.deletePage( dbId, getPageId(page) );
                   } }
                   style={linkStyle}
                 >
@@ -162,7 +163,7 @@ export default function Home() {
                 </div>
                 <div
                   onClick={ () => {
-                    cbUpdatePage( dbId, page[DGMDCC_BLOCK_ID][DGMDCC_BLOCK_VALUE] );
+                    cbUpdatePage( dbId, getPageId(page) );
                   } }
                   style={linkStyle}                
                 >

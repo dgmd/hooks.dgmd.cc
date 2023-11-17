@@ -21,6 +21,9 @@ export const NOTION_DATABASE = 'NOTION_DATABASE';
 export const DGMDCC_BLOCK_TYPE = 'TYPE';
 export const DGMDCC_BLOCK_VALUE = 'VALUE';
 
+export const DGMDCC_BLOCK_METADATA = 'METADATA';
+export const DGMDCC_BLOCK_PROPERTIES = 'PROPERTIES';
+
 export const DGMDCC_BLOCK_ID = 'id';
 export const DGMDCC_BLOCK_URL = 'url';
 
@@ -148,47 +151,47 @@ export const useNotionData = url => {
     };
 
     func.sortData = ( dbName, fields, directions ) => {
-      const r = {
-        [NOTION_RESULT_SUCCESS]: false,
-        [NOTION_QUERY]: {
-          [NOTION_DATABASE]: dbName,
-          [NOTION_REQUEST]: 'sortData'
-        }
-      };
+      // const r = {
+      //   [NOTION_RESULT_SUCCESS]: false,
+      //   [NOTION_QUERY]: {
+      //     [NOTION_DATABASE]: dbName,
+      //     [NOTION_REQUEST]: 'sortData'
+      //   }
+      // };
 
-      const db = func.getDb( dbName );
-      if (!isNil(db)) {
-        const dbBlocks = db[NOTION_RESULT_BLOCKS];
+      // const db = func.getDb( dbName );
+      // if (!isNil(db)) {
+      //   const dbBlocks = db[NOTION_RESULT_BLOCKS];
 
-        const fieldsLen = fields.length;
+      //   const fieldsLen = fields.length;
 
-        if (!r[NOTION_ERROR]) {
+      //   if (!r[NOTION_ERROR]) {
 
-          dbBlocks.sort( (a, b) => {
-            for (let i = 0; i < fieldsLen; i++) {
-              const field = fields[i];
-              const direction = directions[i] ? 1 : -1;
-              const aVal = a[field][DGMDCC_BLOCK_VALUE];
-              const bVal = b[field][DGMDCC_BLOCK_VALUE];
-              if (aVal < bVal) {
-                return -1 * direction;
-              }
-              if (aVal > bVal) {
-                return 1 * direction;
-              }
-            }
-            return 0;
-          } );
+      //     dbBlocks.sort( (a, b) => {
+      //       for (let i = 0; i < fieldsLen; i++) {
+      //         const field = fields[i];
+      //         const direction = directions[i] ? 1 : -1;
+      //         const aVal = a[field][DGMDCC_BLOCK_VALUE];
+      //         const bVal = b[field][DGMDCC_BLOCK_VALUE];
+      //         if (aVal < bVal) {
+      //           return -1 * direction;
+      //         }
+      //         if (aVal > bVal) {
+      //           return 1 * direction;
+      //         }
+      //       }
+      //       return 0;
+      //     } );
 
-          r[NOTION_RESULT_SUCCESS] = true;
-          r[NOTION_RESULT] = db;
+      //     r[NOTION_RESULT_SUCCESS] = true;
+      //     r[NOTION_RESULT] = db;
 
-        }
-      }
-      else {
-        r[NOTION_ERROR] = `Database ${dbName} not found`;
-      }
-      return r;
+      //   }
+      // }
+      // else {
+      //   r[NOTION_ERROR] = `Database ${dbName} not found`;
+      // }
+      // return r;
     };
 
     func.getRowsLength = dbId => {
@@ -219,7 +222,7 @@ export const useNotionData = url => {
       const db = func.getDb( dbId );
       const dbBlocks = db[NOTION_RESULT_BLOCKS];
       const pageIdx = dbBlocks.findIndex( block => {
-        const blockIdData = block[DGMDCC_BLOCK_ID];
+        const blockIdData = block[DGMDCC_BLOCK_METADATA][DGMDCC_BLOCK_ID];
         const blockId = blockIdData[DGMDCC_BLOCK_VALUE];
         return blockId === pageId;
       } );
@@ -231,7 +234,7 @@ export const useNotionData = url => {
   
       rCRUDDING.current = true;
       if (func.isLiveData()) {
-        const blockIdData = dbBlocks[pageIdx][DGMDCC_BLOCK_ID][DGMDCC_BLOCK_VALUE];
+        const blockIdData = dbBlocks[pageIdx][DGMDCC_BLOCK_METADATA][DGMDCC_BLOCK_ID][DGMDCC_BLOCK_VALUE];
         console.log( 'delete', blockIdData );
         const updateUrl = new URL( '/api/update', urlObj.origin );
         updateUrl.searchParams.append( URL_SEARCH_PARAM_ACTION, URL_SEARCH_VALUE_ACTION_DELETE );
@@ -268,14 +271,11 @@ export const useNotionData = url => {
       if (func.isLiveData()) {
         const list = {};
         for (const [key, userBlock] of Object.entries(pageBlockData)) {
-          if (![DGMDCC_BLOCK_ID, DGMDCC_BLOCK_URL].includes(key)) {
-            const nBlock = mmBlocktoNotionBlock( userBlock );
-            if (!isNil(nBlock)) {
-              list[key] = nBlock;
-            }
+          const nBlock = mmBlocktoNotionBlock( userBlock );
+          if (!isNil(nBlock)) {
+            list[key] = nBlock;
           }
         }
-        console.log( 'create:', list );
         const updateUrl = new URL( '/api/update', urlObj.origin );
         updateUrl.searchParams.append( URL_SEARCH_PARAM_ACTION, URL_SEARCH_VALUE_ACTION_CREATE );
         updateUrl.searchParams.append( URL_SEARCH_PARAM_CREATE_BLOCK_ID, dbId );
@@ -307,7 +307,7 @@ export const useNotionData = url => {
       const db = func.getDb( dbId );
       const dbBlocks = db[NOTION_RESULT_BLOCKS];
       const pageIdx = dbBlocks.findIndex( block => {
-        const blockIdData = block[DGMDCC_BLOCK_ID];
+        const blockIdData = block[DGMDCC_BLOCK_METADATA][DGMDCC_BLOCK_ID];
         const blockId = blockIdData[DGMDCC_BLOCK_VALUE];
         return blockId === pageId;
       } );
@@ -320,17 +320,14 @@ export const useNotionData = url => {
       rCRUDDING.current = true;
 
       if (func.isLiveData()) {
-        const rowIdData = dbBlocks[pageIdx][DGMDCC_BLOCK_ID][DGMDCC_BLOCK_VALUE];
+        const rowIdData = dbBlocks[pageIdx][DGMDCC_BLOCK_METADATA][DGMDCC_BLOCK_ID][DGMDCC_BLOCK_VALUE];
         const list = {};
         for (const [key, userBlock] of Object.entries(pageBlockData)) {
-          if (![DGMDCC_BLOCK_ID, DGMDCC_BLOCK_URL].includes(key)) {
-            const mmBlock = mmBlocktoNotionBlock( userBlock );
-            if (!isNil(mmBlock)) {
-              list[key] = mmBlock;
-            }
+          const mmBlock = mmBlocktoNotionBlock( userBlock );
+          if (!isNil(mmBlock)) {
+            list[key] = mmBlock;
           }
         }
-        console.log( 'update', list );
         const updateUrl = new URL( '/api/update', urlObj.origin );
         updateUrl.searchParams.append( URL_SEARCH_PARAM_ACTION, URL_SEARCH_VALUE_ACTION_UPDATE );
         updateUrl.searchParams.append( URL_SEARCH_PARAM_UPDATE_BLOCK_ID, rowIdData );
@@ -344,6 +341,7 @@ export const useNotionData = url => {
         rCRUDDING.current = false;
         rObj[CRUD_RESULT_SUCCESS] = true;
       }
+
       return rObj;
     };
 
@@ -494,3 +492,5 @@ const deriveBoolean = ( value ) => {
     'on'
   ].includes( strLowTrim );
 };
+
+export const getPageId = page => page[DGMDCC_BLOCK_METADATA][DGMDCC_BLOCK_ID][DGMDCC_BLOCK_VALUE];
