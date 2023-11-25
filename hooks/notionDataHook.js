@@ -44,6 +44,8 @@ export const BLOCK_TYPE_DATE = 'date';
 export const DGMDCC_BLOCK_DATE_START = 'start';
 export const DGMDCC_BLOCK_DATE_END = 'end';
 
+
+
 const URL_SEARCH_PARAM_ACTION = 'a';
 const URL_SEARCH_PARAM_DELETE_BLOCK_ID = 'dbi';
 const URL_SEARCH_VALUE_ACTION_DELETE = 'd';
@@ -57,8 +59,11 @@ const URL_SEARCH_PARAM_UPDATE_BLOCK = 'ub';
 const SNAPSHOT_TIMESTAMP = 'SNAPSHOT_TIMESTAMP';
 
 
-const CRUD_RESULT_SUCCESS = 'CRUD_RESULT_SUCCESS';
-const CRUD_ERROR = 'CRUD_ERROR';
+export const CRUD_RESULT_STATUS = 'CRUD_RESULT_STATUS';
+export const CRUD_ERROR = 'CRUD_ERROR';
+export const CRUD_RESULT_STATUS_SUCCESS = 'CRUD_RESULT_STATUS_SUCCESS';
+export const CRUD_RESULT_STATUS_FAILURE = 'CRUD_RESULT_STATUS_FAILURE';
+export const CRUD_RESULT_STATUS_PENDING = 'CRUD_RESULT_STATUS_PENDING';
 
 export const useNotionData = url => {
 
@@ -194,7 +199,7 @@ export const useNotionData = url => {
       // return r;
     };
 
-    func.getRowsLength = dbId => {
+    func.getPagesLength = dbId => {
       const db = func.getDb( dbId );
       if (isNil(db)) {
         return 0;
@@ -210,7 +215,7 @@ export const useNotionData = url => {
     func.deletePage = (dbId, pageId) => {
 
       const rObj = {
-        [CRUD_RESULT_SUCCESS]: false,
+        [CRUD_RESULT_STATUS]: CRUD_RESULT_STATUS_FAILURE,
         [CRUD_ERROR]: null
       };
 
@@ -239,6 +244,7 @@ export const useNotionData = url => {
         const updateUrl = new URL( '/api/update', urlObj.origin );
         updateUrl.searchParams.append( URL_SEARCH_PARAM_ACTION, URL_SEARCH_VALUE_ACTION_DELETE );
         updateUrl.searchParams.append( URL_SEARCH_PARAM_DELETE_BLOCK_ID, blockIdData );
+        rObj[CRUD_RESULT_STATUS] = CRUD_RESULT_STATUS_PENDING;
         setCrudURL( x => updateUrl.href );
       }
       else {
@@ -246,7 +252,7 @@ export const useNotionData = url => {
         setJsonObject( x => JSON.parse( JSON.stringify( rJsonObject.current ) ) );
 
         rCRUDDING.current = false;
-        rObj[CRUD_RESULT_SUCCESS] = true;
+        rObj[CRUD_RESULT_STATUS] = CRUD_RESULT_STATUS_SUCCESS;
       }
 
       return rObj;
@@ -254,7 +260,7 @@ export const useNotionData = url => {
 
     func.createPage = (dbId, pageBlockData) => {
       const rObj = {
-        [CRUD_RESULT_SUCCESS]: false,
+        [CRUD_RESULT_STATUS]: CRUD_RESULT_STATUS_FAILURE,
         [CRUD_ERROR]: null
       };
 
@@ -281,13 +287,14 @@ export const useNotionData = url => {
         updateUrl.searchParams.append( URL_SEARCH_PARAM_CREATE_BLOCK_ID, dbId );
         updateUrl.searchParams.append( URL_SEARCH_PARAM_CREATE_CHILDREN, JSON.stringify(list) );
         setCrudURL( x => updateUrl.href );
+        rObj[CRUD_RESULT_STATUS] = CRUD_RESULT_STATUS_PENDING;
       }
       else {
         dbBlocks.unshift( pageBlockData );
         setJsonObject( x => JSON.parse( JSON.stringify( rJsonObject.current ) ) );
 
         rCRUDDING.current = false;
-        rObj[CRUD_RESULT_SUCCESS] = true;
+        rObj[CRUD_RESULT_STATUS] = CRUD_RESULT_STATUS_SUCCESS;
       }
       return rObj;
     };
@@ -295,7 +302,7 @@ export const useNotionData = url => {
     func.updatePage = (dbId, pageId, pageBlockData) => {
 
       const rObj = {
-        [CRUD_RESULT_SUCCESS]: false,
+        [CRUD_RESULT_STATUS]: CRUD_RESULT_STATUS_FAILURE,
         [CRUD_ERROR]: null
       };
 
@@ -332,14 +339,15 @@ export const useNotionData = url => {
         updateUrl.searchParams.append( URL_SEARCH_PARAM_ACTION, URL_SEARCH_VALUE_ACTION_UPDATE );
         updateUrl.searchParams.append( URL_SEARCH_PARAM_UPDATE_BLOCK_ID, rowIdData );
         updateUrl.searchParams.append( URL_SEARCH_PARAM_UPDATE_BLOCK, JSON.stringify(list) );
+        rObj[CRUD_RESULT_STATUS] = CRUD_RESULT_STATUS_PENDING;
         setCrudURL( x => updateUrl.href );
       }
       else {
-        dbBlocks[pageIdx] = updatesObj;
+        dbBlocks[pageIdx] = pageBlockData;
         setJsonObject( x => JSON.parse( JSON.stringify( rJsonObject.current ) ) );
 
         rCRUDDING.current = false;
-        rObj[CRUD_RESULT_SUCCESS] = true;
+        rObj[CRUD_RESULT_STATUS] = CRUD_RESULT_STATUS_SUCCESS;
       }
 
       return rObj;

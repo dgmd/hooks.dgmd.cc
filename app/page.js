@@ -33,7 +33,8 @@ export default function Home() {
     nataJSON,
     crudding
   ] = useNotionData(
-    'http://localhost:3000/api/query?d=9892f85b6b5e460db15c61273042fe9d&b=false&r=true' );
+    // 'http://localhost:3000/api/query?d=9892f85b6b5e460db15c61273042fe9d&b=false&r=true' );
+    'https://proto-dgmd-cc.vercel.app/api/query?d=ce748dc81b8444aba06b5cf5a0517fd7&b=false&r=true' );
 
   const cbUpdatePage = useCallback( (dbId, pageId) => {
     const updatePageObj = {
@@ -51,7 +52,7 @@ export default function Home() {
     const createPageObj = {
       "blurb": {
         [DGMDCC_BLOCK_TYPE]: BLOCK_TYPE_RICH_TEXT,
-        [DGMDCC_BLOCK_VALUE]: "rich text here, yes there is"
+        [DGMDCC_BLOCK_VALUE]: "rich text here, yes there is "+ Math.floor(Math.random() * 100)
       },
       // "yepchecky": {
       //   [DGMDCC_BLOCK_TYPE]: BLOCK_TYPE_CHECKBOX,
