@@ -1,3 +1,4 @@
+
 import {
   useEffect,
   useMemo,
@@ -6,7 +7,6 @@ import {
 } from 'react';
 
 const NOTION_RESULT_PRIMARY_DATABASE = 'NOTION_RESULT_PRIMARY_DATABASE';
-const NOTION_RESULT_RELATION_DATABASES = 'NOTION_RESULT_RELATION_DATABASES';
 const NOTION_RESULT_DATABASE_ID = 'NOTION_RESULT_DATABASE_ID';
 const NOTION_RESULT_BLOCKS = 'NOTION_RESULT_BLOCKS';
 
@@ -40,6 +40,8 @@ export const BLOCK_TYPE_NUMBER = 'number';
 export const BLOCK_TYPE_MULTI_SELECT = 'multi_select';
 export const BLOCK_TYPE_CHECKBOX = 'checkbox';
 export const BLOCK_TYPE_DATE = 'date';
+export const BLOCK_TYPE_EMOJI = 'emoji';
+export const BLOCK_TYPE_FILE_EXTERNAL = 'external';
 
 export const DGMDCC_BLOCK_DATE_START = 'start';
 export const DGMDCC_BLOCK_DATE_END = 'end';
@@ -52,9 +54,11 @@ const URL_SEARCH_VALUE_ACTION_DELETE = 'd';
 const URL_SEARCH_VALUE_ACTION_CREATE = 'c';
 const URL_SEARCH_PARAM_CREATE_BLOCK_ID = 'cbi';
 const URL_SEARCH_PARAM_CREATE_CHILDREN = 'cc';
+const URL_SEARCH_PARAM_CREATE_META = 'cm';
 const URL_SEARCH_VALUE_ACTION_UPDATE = 'u';
 const URL_SEARCH_PARAM_UPDATE_BLOCK_ID = 'ubi';
 const URL_SEARCH_PARAM_UPDATE_BLOCK = 'ub';
+const URL_SEARCH_PARAM_UPDATE_META = 'um';
 
 const SNAPSHOT_TIMESTAMP = 'SNAPSHOT_TIMESTAMP';
 
@@ -258,7 +262,7 @@ export const useNotionData = url => {
       return rObj;
     };
 
-    func.createPage = (dbId, pageBlockData) => {
+    func.createPage = (dbId, pageBlockData, pageMetaData) => {
       const rObj = {
         [CRUD_RESULT_STATUS]: CRUD_RESULT_STATUS_FAILURE,
         [CRUD_ERROR]: null
@@ -275,17 +279,27 @@ export const useNotionData = url => {
       rCRUDDING.current = true;
 
       if (func.isLiveData()) {
-        const list = {};
+        const blockList = {};
         for (const [key, userBlock] of Object.entries(pageBlockData)) {
           const nBlock = mmBlocktoNotionBlock( userBlock );
           if (!isNil(nBlock)) {
-            list[key] = nBlock;
+            blockList[key] = nBlock;
           }
         }
+        const headerList = {};
+        for (const [key, userBlock] of Object.entries(pageMetaData)) {
+          const nBlock = mmBlocktoHeaderBlock( userBlock );
+          console.log( 'nBlock', nBlock );
+          if (!isNil(nBlock)) {
+            headerList[key] = nBlock;
+          }
+        }
+
         const updateUrl = new URL( '/api/update', urlObj.origin );
         updateUrl.searchParams.append( URL_SEARCH_PARAM_ACTION, URL_SEARCH_VALUE_ACTION_CREATE );
         updateUrl.searchParams.append( URL_SEARCH_PARAM_CREATE_BLOCK_ID, dbId );
-        updateUrl.searchParams.append( URL_SEARCH_PARAM_CREATE_CHILDREN, JSON.stringify(list) );
+        updateUrl.searchParams.append( URL_SEARCH_PARAM_CREATE_CHILDREN, JSON.stringify(blockList) );
+        updateUrl.searchParams.append( URL_SEARCH_PARAM_CREATE_META, JSON.stringify(headerList) );
         setCrudURL( x => updateUrl.href );
         rObj[CRUD_RESULT_STATUS] = CRUD_RESULT_STATUS_PENDING;
       }
@@ -299,7 +313,7 @@ export const useNotionData = url => {
       return rObj;
     };
 
-    func.updatePage = (dbId, pageId, pageBlockData) => {
+    func.updatePage = (dbId, pageId, pageBlockData, pageMetaData) => {
 
       const rObj = {
         [CRUD_RESULT_STATUS]: CRUD_RESULT_STATUS_FAILURE,
@@ -335,10 +349,19 @@ export const useNotionData = url => {
             list[key] = mmBlock;
           }
         }
+        const metaList = {};
+        for (const [key, userBlock] of Object.entries(pageMetaData)) {
+          const mmBlock = mmBlocktoHeaderBlock( userBlock );
+          if (!isNil(mmBlock)) {
+            metaList[key] = mmBlock;
+          }
+        }
+
         const updateUrl = new URL( '/api/update', urlObj.origin );
         updateUrl.searchParams.append( URL_SEARCH_PARAM_ACTION, URL_SEARCH_VALUE_ACTION_UPDATE );
         updateUrl.searchParams.append( URL_SEARCH_PARAM_UPDATE_BLOCK_ID, rowIdData );
         updateUrl.searchParams.append( URL_SEARCH_PARAM_UPDATE_BLOCK, JSON.stringify(list) );
+        updateUrl.searchParams.append( URL_SEARCH_PARAM_UPDATE_META, JSON.stringify(metaList) );
         rObj[CRUD_RESULT_STATUS] = CRUD_RESULT_STATUS_PENDING;
         setCrudURL( x => updateUrl.href );
       }
@@ -407,6 +430,7 @@ export const useNotionData = url => {
 const isNil = ( value ) => {
   return value === null || value === undefined;
 };
+
 
 const mmBlocktoNotionBlock = ( block ) => {
   const type = block[DGMDCC_BLOCK_TYPE];
@@ -487,6 +511,24 @@ const mmBlocktoNotionBlock = ( block ) => {
   }
   
   return null;
+};
+
+const mmBlocktoHeaderBlock = ( block ) => {
+  const type = block[DGMDCC_BLOCK_TYPE];
+  const value = block[DGMDCC_BLOCK_VALUE];
+  if (type === BLOCK_TYPE_EMOJI) {
+    return {
+      [type]: value,
+    }
+  }
+  if (type === BLOCK_TYPE_FILE_EXTERNAL) {
+    return {
+      "type": type,
+      "external": {
+        "url": value
+      }
+    }
+  }
 };
 
 const deriveBoolean = ( value ) => {

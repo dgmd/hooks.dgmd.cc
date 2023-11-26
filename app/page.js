@@ -11,6 +11,8 @@ import {
   BLOCK_TYPE_SELECT,
   BLOCK_TYPE_STATUS,
   BLOCK_TYPE_TITLE,
+  BLOCK_TYPE_EMOJI,
+  BLOCK_TYPE_FILE_EXTERNAL,
   BLOCK_TYPE_URL,
   DGMDCC_BLOCK_DATE_END,
   DGMDCC_BLOCK_DATE_START,
@@ -19,7 +21,8 @@ import {
   DGMDCC_BLOCK_VALUE,
   DGMDCC_BLOCK_METADATA,
   useNotionData,
-  getPageId
+  getPageId,
+  BLOCK_ICON
 } from '../hooks/notionDataHook.js';
 
 import {
@@ -33,8 +36,8 @@ export default function Home() {
     nataJSON,
     crudding
   ] = useNotionData(
-    // 'http://localhost:3000/api/query?d=9892f85b6b5e460db15c61273042fe9d&b=false&r=true' );
-    'https://proto-dgmd-cc.vercel.app/api/query?d=ce748dc81b8444aba06b5cf5a0517fd7&b=false&r=true' );
+    'http://localhost:3001/api/query?d=ce748dc81b8444aba06b5cf5a0517fd7&b=false&r=true' );
+    // 'https://proto-dgmd-cc.vercel.app/api/query?d=ce748dc81b8444aba06b5cf5a0517fd7&b=false&r=true' );
 
   const cbUpdatePage = useCallback( (dbId, pageId) => {
     const updatePageObj = {
@@ -43,7 +46,13 @@ export default function Home() {
         [DGMDCC_BLOCK_VALUE]: "updated" + Math.floor(Math.random() * 100)
        },
     };
-    nata.updatePage( dbId, pageId, updatePageObj );
+    const updatePageMetaObj = {
+      'icon': {
+        [DGMDCC_BLOCK_TYPE]: BLOCK_TYPE_EMOJI,
+        [DGMDCC_BLOCK_VALUE]: "🥨"
+      }
+    };
+    nata.updatePage( dbId, pageId, updatePageObj, updatePageMetaObj );
   }, [
     nata
   ] );
@@ -101,7 +110,17 @@ export default function Home() {
       //   }
       // }
     };
-    nata.createPage( dbId, createPageObj );
+    const pageMetaObj = {
+      'icon': {
+        [DGMDCC_BLOCK_TYPE]: BLOCK_TYPE_EMOJI,
+        [DGMDCC_BLOCK_VALUE]: "🥨"
+      },
+      'cover': {
+        [DGMDCC_BLOCK_TYPE]: BLOCK_TYPE_FILE_EXTERNAL,
+        [DGMDCC_BLOCK_VALUE]: "https://www.google.com/images/branding/googlelogo/2x/googlelogo_color_272x92dp.png"
+      }
+    };
+    nata.createPage( dbId, createPageObj, pageMetaObj );
   }, [
     nata
   ] );
