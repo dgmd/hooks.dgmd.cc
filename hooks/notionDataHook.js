@@ -365,11 +365,12 @@ export const useNotionData = url => {
         const page = dbBlocks[pageIdx];
         const pageProps = page[DGMDCC_BLOCK_PROPERTIES];
         for (const [key, value] of Object.entries(pageBlockData)) {
-          pageProps[key][DGMDCC_BLOCK_VALUE] = value;
+          pageProps[key] = value;
         }
+
         const pageMetas = page[DGMDCC_BLOCK_METADATA];
         for (const [key, value] of Object.entries(pageMetaData)) {
-          pageMetas[key][DGMDCC_BLOCK_VALUE] = value;
+          pageMetas[key] = value;
         }
 
         rCRUDDING.current = false;

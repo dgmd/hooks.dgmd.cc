@@ -24,7 +24,7 @@ export default function Home() {
     crudding
   ] = useNotionData(
     // 'http://localhost:3000/api/query?d=529a56b3cc2b44798a98e5e0c39ffa47&b=false&r=true' );
-    'http://localhost:3000/api/prototype?i=3a278e45-72a4-4a52-bcf9-e64cc55051b3' );
+    'http://localhost:3000/api/prototype?i=ad16fb5b-5a52-4bcc-b663-0ea870565599' );
 
   const cbUpdatePage = useCallback( (dbId, pageId) => {
     if (!nata || !nata.isValid()) {
