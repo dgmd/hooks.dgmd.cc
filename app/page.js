@@ -1,29 +1,15 @@
 "use client"
 
 import {
-  BLOCK_TYPE_CHECKBOX,
-  BLOCK_TYPE_DATE,
-  BLOCK_TYPE_EMAIL,
-  BLOCK_TYPE_MULTI_SELECT,
-  BLOCK_TYPE_NUMBER,
-  BLOCK_TYPE_PHONE_NUMBER,
-  BLOCK_TYPE_RICH_TEXT,
-  BLOCK_TYPE_SELECT,
-  BLOCK_TYPE_STATUS,
-  BLOCK_TYPE_TITLE,
   BLOCK_TYPE_EMOJI,
   BLOCK_TYPE_FILE_EXTERNAL,
   BLOCK_TYPE_RELATION,
-  BLOCK_TYPE_URL,
-  DGMDCC_BLOCK_DATE_END,
-  DGMDCC_BLOCK_DATE_START,
-  DGMDCC_BLOCK_ID,
+  BLOCK_TYPE_RICH_TEXT,
+  BLOCK_TYPE_TITLE,
   DGMDCC_BLOCK_TYPE,
   DGMDCC_BLOCK_VALUE,
-  DGMDCC_BLOCK_METADATA,
-  useNotionData,
   getPageId,
-  BLOCK_ICON
+  useNotionData
 } from '../hooks/notionDataHook.js';
 
 import {
@@ -37,26 +23,29 @@ export default function Home() {
     nataJSON,
     crudding
   ] = useNotionData(
-    'http://localhost:3001/api/query?d=ce748dc81b8444aba06b5cf5a0517fd7&b=false&r=true' );
-    // 'https://proto-dgmd-cc.vercel.app/api/query?d=ce748dc81b8444aba06b5cf5a0517fd7&b=false&r=true' );
+    // 'http://localhost:3000/api/query?d=529a56b3cc2b44798a98e5e0c39ffa47&b=false&r=true' );
+    'http://localhost:3000/api/prototype?i=3a278e45-72a4-4a52-bcf9-e64cc55051b3' );
 
   const cbUpdatePage = useCallback( (dbId, pageId) => {
+    if (!nata || !nata.isValid()) {
+      return;
+    }
     const updatePageObj = {
       "Name": {
         [DGMDCC_BLOCK_TYPE]: BLOCK_TYPE_TITLE,
         [DGMDCC_BLOCK_VALUE]: "updated" + Math.floor(Math.random() * 100)
        },
-      "uncle": {
+      "🗿 PUB CUSTOMERS": {
         [DGMDCC_BLOCK_TYPE]: BLOCK_TYPE_RELATION,
-        [DGMDCC_BLOCK_VALUE]: [{
-          id: 'f1e3e3e0-1e1e-4e1e-8e1e-3e1e1e1e1e1e'
-        }]
+        [DGMDCC_BLOCK_VALUE]: [
+          'fa3fd539b88148beadfd8d4628bb941f'
+        ]
       }
     };
     const updatePageMetaObj = {
       'icon': {
         [DGMDCC_BLOCK_TYPE]: BLOCK_TYPE_EMOJI,
-        [DGMDCC_BLOCK_VALUE]: "🥨"
+        [DGMDCC_BLOCK_VALUE]: "😊"
       }
     };
     nata.updatePage( dbId, pageId, updatePageObj, updatePageMetaObj );
@@ -65,6 +54,9 @@ export default function Home() {
   ] );
 
   const cbCreatePage = useCallback( dbId => {
+    if (!nata || !nata.isValid()) {
+      return;
+    }
     const createPageObj = {
       "blurb": {
         [DGMDCC_BLOCK_TYPE]: BLOCK_TYPE_RICH_TEXT,
@@ -132,9 +124,19 @@ export default function Home() {
     nata
   ] );
 
+  const cbSortPages = useCallback( dbId => {
+    if (!nata || !nata.isValid()) {
+      return;
+    }
+    nata.sortPages( dbId, ['Name'], [false] );
+  }, [
+    nata
+  ] );
+
   if (!nata.isLoaded()) {
     return (<div>loading...</div>);
   }
+
   if (!nata.isValid()) {
     return (<div>invalid data</div>);
   }
@@ -154,6 +156,12 @@ export default function Home() {
         style={linkStyle}
       >
         CREATE
+      </div>
+      <div
+        onClick={ () => cbSortPages(dbId) }
+        style={linkStyle}
+      >
+        SORT
       </div>
 
       {

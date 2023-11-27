@@ -1,4 +1,5 @@
 
+
 import {
   useEffect,
   useMemo,
@@ -160,48 +161,35 @@ export const useNotionData = url => {
       }
     };
 
-    func.sortData = ( dbName, fields, directions ) => {
-      // const r = {
-      //   [NOTION_RESULT_SUCCESS]: false,
-      //   [NOTION_QUERY]: {
-      //     [NOTION_DATABASE]: dbName,
-      //     [NOTION_REQUEST]: 'sortData'
-      //   }
-      // };
-
-      // const db = func.getDb( dbName );
-      // if (!isNil(db)) {
-      //   const dbBlocks = db[NOTION_RESULT_BLOCKS];
-
-      //   const fieldsLen = fields.length;
-
-      //   if (!r[NOTION_ERROR]) {
-
-      //     dbBlocks.sort( (a, b) => {
-      //       for (let i = 0; i < fieldsLen; i++) {
-      //         const field = fields[i];
-      //         const direction = directions[i] ? 1 : -1;
-      //         const aVal = a[field][DGMDCC_BLOCK_VALUE];
-      //         const bVal = b[field][DGMDCC_BLOCK_VALUE];
-      //         if (aVal < bVal) {
-      //           return -1 * direction;
-      //         }
-      //         if (aVal > bVal) {
-      //           return 1 * direction;
-      //         }
-      //       }
-      //       return 0;
-      //     } );
-
-      //     r[NOTION_RESULT_SUCCESS] = true;
-      //     r[NOTION_RESULT] = db;
-
-      //   }
-      // }
-      // else {
-      //   r[NOTION_ERROR] = `Database ${dbName} not found`;
-      // }
-      // return r;
+    func.sortPages = ( dbId, fields, directions ) => {
+      const pgs = func.getPages( dbId );
+      const fieldsLen = Array.isArray(fields) ? fields.length : 0;
+      pgs.sort( (a, b) => {
+        for (let i = 0; i < fieldsLen; i++) {
+          try {
+            const field = fields[i];
+            const direction = directions[i] ? 1 : -1;
+            const aProps = a[DGMDCC_BLOCK_PROPERTIES];
+            const bProps = b[DGMDCC_BLOCK_PROPERTIES];
+            const aField = aProps[field];
+            const bField = bProps[field];
+            const aVal = aField[DGMDCC_BLOCK_VALUE];
+            const bVal = bField[DGMDCC_BLOCK_VALUE];
+            if (aVal < bVal) {
+              return -1 * direction;
+            }
+            if (aVal > bVal) {
+              return 1 * direction;
+            }
+          }
+          catch (e) {
+          }
+          return 0;
+        }
+      } );
+      if (fieldsLen > 0 && pgs.length > 1) {
+        setJsonObject( x => JSON.parse( JSON.stringify( rJsonObject.current ) ) );
+      }
     };
 
     func.getPagesLength = dbId => {
@@ -245,7 +233,6 @@ export const useNotionData = url => {
       rCRUDDING.current = true;
       if (func.isLiveData()) {
         const blockIdData = dbBlocks[pageIdx][DGMDCC_BLOCK_METADATA][DGMDCC_BLOCK_ID][DGMDCC_BLOCK_VALUE];
-        console.log( 'delete', blockIdData );
         const updateUrl = new URL( '/api/update', urlObj.origin );
         updateUrl.searchParams.append( URL_SEARCH_PARAM_ACTION, URL_SEARCH_VALUE_ACTION_DELETE );
         updateUrl.searchParams.append( URL_SEARCH_PARAM_DELETE_BLOCK_ID, blockIdData );
@@ -290,7 +277,6 @@ export const useNotionData = url => {
         const headerList = {};
         for (const [key, userBlock] of Object.entries(pageMetaData)) {
           const nBlock = mmBlocktoHeaderBlock( userBlock );
-          console.log( 'nBlock', nBlock );
           if (!isNil(nBlock)) {
             headerList[key] = nBlock;
           }
@@ -305,7 +291,16 @@ export const useNotionData = url => {
         rObj[CRUD_RESULT_STATUS] = CRUD_RESULT_STATUS_PENDING;
       }
       else {
-        dbBlocks.unshift( pageBlockData );
+        const uId = uniqueKey();
+        pageMetaData[DGMDCC_BLOCK_ID] = {
+          [DGMDCC_BLOCK_TYPE]: DGMDCC_BLOCK_ID,
+          [DGMDCC_BLOCK_VALUE]: uId
+        };
+        const page = {
+          [DGMDCC_BLOCK_PROPERTIES]: pageBlockData,
+          [DGMDCC_BLOCK_METADATA]: pageMetaData
+        };
+        dbBlocks.unshift( page );
         setJsonObject( x => JSON.parse( JSON.stringify( rJsonObject.current ) ) );
 
         rCRUDDING.current = false;
@@ -367,11 +362,20 @@ export const useNotionData = url => {
         setCrudURL( x => updateUrl.href );
       }
       else {
-        dbBlocks[pageIdx] = pageBlockData;
-        setJsonObject( x => JSON.parse( JSON.stringify( rJsonObject.current ) ) );
+        const page = dbBlocks[pageIdx];
+        const pageProps = page[DGMDCC_BLOCK_PROPERTIES];
+        for (const [key, value] of Object.entries(pageBlockData)) {
+          pageProps[key][DGMDCC_BLOCK_VALUE] = value;
+        }
+        const pageMetas = page[DGMDCC_BLOCK_METADATA];
+        for (const [key, value] of Object.entries(pageMetaData)) {
+          pageMetas[key][DGMDCC_BLOCK_VALUE] = value;
+        }
 
         rCRUDDING.current = false;
         rObj[CRUD_RESULT_STATUS] = CRUD_RESULT_STATUS_SUCCESS;
+
+        setJsonObject( x => JSON.parse( JSON.stringify( rJsonObject.current ) ) );
       }
 
       return rObj;
@@ -513,6 +517,16 @@ const mmBlocktoNotionBlock = ( block ) => {
   // #https://developers.notion.com/reference/page-property-values#relation
   if (type === BLOCK_TYPE_RELATION) {
     if (Array.isArray(value)) {
+
+      if (value.every( v => typeof v === 'string' )) {
+        return {
+          [type]: value.map( v => {
+            return {
+              "id": v
+            };
+          } )
+        };
+      }
       return {
         [type]: value
       };
@@ -553,3 +567,5 @@ const deriveBoolean = ( value ) => {
 };
 
 export const getPageId = page => page[DGMDCC_BLOCK_METADATA][DGMDCC_BLOCK_ID][DGMDCC_BLOCK_VALUE];
+
+const uniqueKey = () => Array.from(crypto.getRandomValues(new Uint8Array(16))).map(b => b.toString(16).padStart(2, '0')).join('');
