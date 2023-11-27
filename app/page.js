@@ -1,6 +1,7 @@
 "use client"
 
 import {
+  BLOCK_TYPE_DATE,
   BLOCK_TYPE_EMOJI,
   BLOCK_TYPE_FILE_EXTERNAL,
   BLOCK_TYPE_RELATION,
@@ -8,6 +9,8 @@ import {
   BLOCK_TYPE_TITLE,
   DGMDCC_BLOCK_TYPE,
   DGMDCC_BLOCK_VALUE,
+  DGMDCC_BLOCK_DATE_START,
+  DGMDCC_BLOCK_DATE_END,
   getPageId,
   useNotionData
 } from '../hooks/notionDataHook.js';
@@ -40,6 +43,13 @@ export default function Home() {
         [DGMDCC_BLOCK_VALUE]: [
           'fa3fd539b88148beadfd8d4628bb941f'
         ]
+      },
+      "Date": {
+        [DGMDCC_BLOCK_TYPE]: BLOCK_TYPE_DATE,
+        [DGMDCC_BLOCK_VALUE]: {
+          [DGMDCC_BLOCK_DATE_START]: "2043-11-02",
+          [DGMDCC_BLOCK_DATE_END]: "2193-11-02T00:00:00.000-04:00",
+        }
       }
     };
     const updatePageMetaObj = {

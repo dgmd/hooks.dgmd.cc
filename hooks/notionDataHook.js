@@ -176,6 +176,37 @@ export const useNotionData = url => {
             const bField = bProps[field];
             const aVal = aField[DGMDCC_BLOCK_VALUE];
             const bVal = bField[DGMDCC_BLOCK_VALUE];
+            const aType = aField[DGMDCC_BLOCK_TYPE];
+            if (aType === BLOCK_TYPE_DATE) {
+              const aDateVal = new Date( aVal[DGMDCC_BLOCK_DATE_START] );
+              const bDateVal = new Date( bVal[DGMDCC_BLOCK_DATE_START] );
+              if (aDateVal < bDateVal) {
+                return -1 * direction;
+              }
+              if (aDateVal > bDateVal) {
+                return 1 * direction;
+              }
+            }
+            if (aType === BLOCK_TYPE_CHECKBOX) {
+              if (!aVal && bVal) {
+                return -1 * direction;
+              }
+              if (aVal && !bVal) {
+                return 1 * direction;
+              }
+            }
+            if (aType === BLOCK_TYPE_MULTI_SELECT ||
+                aType === BLOCK_TYPE_RELATION) {
+              const aValJoin = aVal.join( ',' );
+              const bValJoin = bVal.join( ',' );
+              if (aValJoin < bValJoin) {
+                return -1 * direction;
+              }
+              if (aValJoin > bValJoin) {
+                return 1 * direction;
+              }              
+            }
+
             if (aVal < bVal) {
               return -1 * direction;
             }
