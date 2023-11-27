@@ -13,6 +13,7 @@ import {
   BLOCK_TYPE_TITLE,
   BLOCK_TYPE_EMOJI,
   BLOCK_TYPE_FILE_EXTERNAL,
+  BLOCK_TYPE_RELATION,
   BLOCK_TYPE_URL,
   DGMDCC_BLOCK_DATE_END,
   DGMDCC_BLOCK_DATE_START,
@@ -45,6 +46,12 @@ export default function Home() {
         [DGMDCC_BLOCK_TYPE]: BLOCK_TYPE_TITLE,
         [DGMDCC_BLOCK_VALUE]: "updated" + Math.floor(Math.random() * 100)
        },
+      "uncle": {
+        [DGMDCC_BLOCK_TYPE]: BLOCK_TYPE_RELATION,
+        [DGMDCC_BLOCK_VALUE]: [{
+          id: 'f1e3e3e0-1e1e-4e1e-8e1e-3e1e1e1e1e1e'
+        }]
+      }
     };
     const updatePageMetaObj = {
       'icon': {

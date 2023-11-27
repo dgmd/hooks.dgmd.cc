@@ -42,6 +42,7 @@ export const BLOCK_TYPE_CHECKBOX = 'checkbox';
 export const BLOCK_TYPE_DATE = 'date';
 export const BLOCK_TYPE_EMOJI = 'emoji';
 export const BLOCK_TYPE_FILE_EXTERNAL = 'external';
+export const BLOCK_TYPE_RELATION = 'relation';
 
 export const DGMDCC_BLOCK_DATE_START = 'start';
 export const DGMDCC_BLOCK_DATE_END = 'end';
@@ -508,6 +509,14 @@ const mmBlocktoNotionBlock = ( block ) => {
     return {
       [type]: booleanValue
     };
+  }
+  // #https://developers.notion.com/reference/page-property-values#relation
+  if (type === BLOCK_TYPE_RELATION) {
+    if (Array.isArray(value)) {
+      return {
+        [type]: value
+      };
+    }
   }
   
   return null;
