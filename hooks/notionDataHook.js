@@ -414,6 +414,23 @@ export const useNotionData = url => {
       return rObj;
     };
 
+    func.getPage = ( dbId, pageId ) => {
+      const db = func.getDb( dbId );
+      if (isNil(db)) {
+        return null;
+      }
+      const dbBlocks = db[NOTION_RESULT_BLOCKS];
+      const pageIdx = dbBlocks.findIndex( block => {
+        const blockIdData = block[DGMDCC_BLOCK_METADATA][DGMDCC_BLOCK_ID];
+        const blockId = blockIdData[DGMDCC_BLOCK_VALUE];
+        return blockId === pageId;
+      } );
+      if (pageIdx < 0) {
+        return null;
+      }
+      return dbBlocks[pageIdx];
+    };
+
     return func;
   }, [
     jsonObject
@@ -464,11 +481,6 @@ export const useNotionData = url => {
     rCRUDDING.current
   ];
 };
-
-const isNil = ( value ) => {
-  return value === null || value === undefined;
-};
-
 
 const mmBlocktoNotionBlock = ( block ) => {
   const type = block[DGMDCC_BLOCK_TYPE];
@@ -587,6 +599,17 @@ const mmBlocktoHeaderBlock = ( block ) => {
   }
 };
 
+export const getPageId = page => page[DGMDCC_BLOCK_METADATA][DGMDCC_BLOCK_ID][DGMDCC_BLOCK_VALUE];
+
+//
+//  UTILS
+//
+const uniqueKey = () => Array.from(crypto.getRandomValues(new Uint8Array(16))).map(b => b.toString(16).padStart(2, '0')).join('');
+
+const isNil = ( value ) => {
+  return value === null || value === undefined;
+};
+
 const deriveBoolean = ( value ) => {
   const str = String( value );
   const strLowTrim = str.toLowerCase().trim();
@@ -599,6 +622,24 @@ const deriveBoolean = ( value ) => {
   ].includes( strLowTrim );
 };
 
-export const getPageId = page => page[DGMDCC_BLOCK_METADATA][DGMDCC_BLOCK_ID][DGMDCC_BLOCK_VALUE];
+//
+//  DATES
+//
 
-const uniqueKey = () => Array.from(crypto.getRandomValues(new Uint8Array(16))).map(b => b.toString(16).padStart(2, '0')).join('');
+//Format in "MMM D, YYYY" format (e.g., Dec 5, 2023)
+export const DATE_PRETTY_SHORT_DATE = {
+  month: 'short',
+  day: 'numeric',
+  year: 'numeric' };
+
+//Format in "M/D/YY" format (e.g., 12/5/23)
+export const DATE_PRETTY_SHORT_NUMERIC_DATE = {
+  month: 'numeric',
+  day: 'numeric',
+  year: '2-digit' };
+
+export const prettyPrintNotionDate = (date, format) => {
+	format = format || DATE_PRETTY_SHORT_NUMERIC_DATE;
+  const dateObj = new Date( date );
+	return dateObj.toLocaleDateString( 'en-US', format );
+};
