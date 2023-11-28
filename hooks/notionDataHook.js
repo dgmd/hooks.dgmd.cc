@@ -7,6 +7,7 @@ import {
   useState
 } from 'react';
 
+
 const NOTION_RESULT_PRIMARY_DATABASE = 'NOTION_RESULT_PRIMARY_DATABASE';
 const NOTION_RESULT_RELATION_DATABASES = 'NOTION_RESULT_RELATION_DATABASES';
 const NOTION_RESULT_DATABASE_ID = 'NOTION_RESULT_DATABASE_ID';
@@ -185,6 +186,16 @@ export const useNotionData = url => {
               }
               if (aDateVal > bDateVal) {
                 return 1 * direction;
+              }
+              if (aDateVal === bDateVal) {
+                const aEndDateVal = new Date( aVal[DGMDCC_BLOCK_DATE_END] );
+                const bEndDateVal = new Date( bVal[DGMDCC_BLOCK_DATE_END] );
+                if (aEndDateVal < bEndDateVal) {
+                  return -1 * direction;
+                }
+                if (aEndDateVal > bEndDateVal) {
+                  return 1 * direction;
+                }
               }
             }
             if (aType === BLOCK_TYPE_CHECKBOX) {
@@ -482,6 +493,9 @@ export const useNotionData = url => {
   ];
 };
 
+//
+//  BLOCK UPDATE CONVERTERS
+//
 const mmBlocktoNotionBlock = ( block ) => {
   const type = block[DGMDCC_BLOCK_TYPE];
   const value = block[DGMDCC_BLOCK_VALUE];
@@ -638,8 +652,27 @@ export const DATE_PRETTY_SHORT_NUMERIC_DATE = {
   day: 'numeric',
   year: '2-digit' };
 
-export const prettyPrintNotionDate = (date, format) => {
+const hasTimeZoneInfo = dateString => {
+  return /Z|[+-]\d{2}:\d{2}$/.test(dateString.slice(-6));
+};
+
+export const prettyPrintNotionDate = (dateString, format) => {
 	format = format || DATE_PRETTY_SHORT_NUMERIC_DATE;
-  const dateObj = new Date( date );
-	return dateObj.toLocaleDateString( 'en-US', format );
+  try {
+    //handle time zone shifting your printed date
+    const tzInfoString = hasTimeZoneInfo(dateString) ? '' : 'T12:00:00Z';
+    const tzDateString = `${ dateString }${ tzInfoString }`
+    const dateObj = new Date( tzDateString );
+    
+    //did we successfully parse a date?
+    if (dateObj instanceof Date && !isNaN(dateObj.getTime())) {
+      return dateObj.toLocaleDateString( 'en-US', format );
+    }
+    else {
+      console.log( 'invalid date', date );
+    }
+  }
+  catch(e) {
+  }
+  return '';
 };

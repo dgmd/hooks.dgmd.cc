@@ -7,11 +7,15 @@ import {
   BLOCK_TYPE_RELATION,
   BLOCK_TYPE_RICH_TEXT,
   BLOCK_TYPE_TITLE,
+  DATE_PRETTY_SHORT_DATE,
+  DATE_PRETTY_SHORT_NUMERIC_DATE,
+  DGMDCC_BLOCK_DATE_END,
+  DGMDCC_BLOCK_DATE_START,
+  DGMDCC_BLOCK_PROPERTIES,
   DGMDCC_BLOCK_TYPE,
   DGMDCC_BLOCK_VALUE,
-  DGMDCC_BLOCK_DATE_START,
-  DGMDCC_BLOCK_DATE_END,
   getPageId,
+  prettyPrintNotionDate,
   useNotionData
 } from '../hooks/notionDataHook.js';
 
@@ -138,7 +142,7 @@ export default function Home() {
     if (!nata || !nata.isValid()) {
       return;
     }
-    nata.sortPages( dbId, ['Name'], [false] );
+    nata.sortPages( dbId, ['Dates'], [true] );
   }, [
     nata
   ] );
@@ -163,19 +167,28 @@ export default function Home() {
       </div>
       <div
         onClick={ () => cbCreatePage(dbId) }
-        style={linkStyle}
+        style={ linkStyle }
       >
         CREATE
       </div>
       <div
         onClick={ () => cbSortPages(dbId) }
-        style={linkStyle}
+        style={ linkStyle }
       >
         SORT
       </div>
 
       {
         nata.getPages( dbId ).map( ( page, i ) => {
+          const datesBlock = page[DGMDCC_BLOCK_PROPERTIES]['Dates'];
+          const startDate = datesBlock[DGMDCC_BLOCK_VALUE][DGMDCC_BLOCK_DATE_START];
+          const endDate = datesBlock[DGMDCC_BLOCK_VALUE][DGMDCC_BLOCK_DATE_END];
+
+          const hostBlock = page[DGMDCC_BLOCK_PROPERTIES]['Host'];
+          const hostDbId = hostBlock[DGMDCC_BLOCK_VALUE][0]['DATABASE_ID'];
+          const hostPgId = hostBlock[DGMDCC_BLOCK_VALUE][0]['PAGE_ID'];
+          const hostData = nata.getPage( hostDbId, hostPgId );
+
           return (
             <div
               style={{
@@ -190,6 +203,35 @@ export default function Home() {
               <pre>
               { JSON.stringify( page, null, 1 ) }
               </pre>
+              <div>
+                START DATE:
+                {
+                prettyPrintNotionDate(
+                  startDate,
+                  DATE_PRETTY_SHORT_DATE
+                )
+                }
+              </div>
+              <div>
+                END DATE:
+                {
+                prettyPrintNotionDate(
+                  endDate,
+                  DATE_PRETTY_SHORT_NUMERIC_DATE
+                )
+                }
+              </div>
+              <div>
+              HOST:
+              {
+                hostData[DGMDCC_BLOCK_PROPERTIES]['First Name'][DGMDCC_BLOCK_VALUE] + 
+                ' ' +
+                hostData[DGMDCC_BLOCK_PROPERTIES]['Last Name'][DGMDCC_BLOCK_VALUE]
+              }
+              </div>
+              <div>
+              
+              </div>
               <div
                 style={{
                   paddingTop: '2px',
