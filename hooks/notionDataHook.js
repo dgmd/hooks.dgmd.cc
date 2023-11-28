@@ -227,8 +227,8 @@ export const useNotionData = url => {
           }
           catch (e) {
           }
-          return 0;
         }
+        return 0;
       } );
       if (fieldsLen > 0 && pgs.length > 1) {
         setJsonObject( x => JSON.parse( JSON.stringify( rJsonObject.current ) ) );
