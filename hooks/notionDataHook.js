@@ -179,23 +179,22 @@ export const useNotionData = url => {
             const bVal = bField[DGMDCC_BLOCK_VALUE];
             const aType = aField[DGMDCC_BLOCK_TYPE];
             if (aType === BLOCK_TYPE_DATE) {
-              const aDateVal = new Date( aVal[DGMDCC_BLOCK_DATE_START] );
-              const bDateVal = new Date( bVal[DGMDCC_BLOCK_DATE_START] );
+              const aDateVal = getTimeZoneNeutralDate( aVal[DGMDCC_BLOCK_DATE_START] );
+              const bDateVal = getTimeZoneNeutralDate( bVal[DGMDCC_BLOCK_DATE_START] );
               if (aDateVal < bDateVal) {
                 return -1 * direction;
               }
               if (aDateVal > bDateVal) {
                 return 1 * direction;
               }
-              if (aDateVal === bDateVal) {
-                const aEndDateVal = new Date( aVal[DGMDCC_BLOCK_DATE_END] );
-                const bEndDateVal = new Date( bVal[DGMDCC_BLOCK_DATE_END] );
-                if (aEndDateVal < bEndDateVal) {
-                  return -1 * direction;
-                }
-                if (aEndDateVal > bEndDateVal) {
-                  return 1 * direction;
-                }
+              //aDateVal === bDateVal, so...
+              const aEndDateVal = getTimeZoneNeutralDate( aVal[DGMDCC_BLOCK_DATE_END] );
+              const bEndDateVal = getTimeZoneNeutralDate( bVal[DGMDCC_BLOCK_DATE_END] );
+              if (aEndDateVal < bEndDateVal) {
+                return -1 * direction;
+              }
+              if (aEndDateVal > bEndDateVal) {
+                return 1 * direction;
               }
             }
             if (aType === BLOCK_TYPE_CHECKBOX) {
@@ -230,6 +229,7 @@ export const useNotionData = url => {
         }
         return 0;
       } );
+
       if (fieldsLen > 0 && pgs.length > 1) {
         setJsonObject( x => JSON.parse( JSON.stringify( rJsonObject.current ) ) );
       }
@@ -659,10 +659,7 @@ const hasTimeZoneInfo = dateString => {
 export const prettyPrintNotionDate = (dateString, format) => {
 	format = format || DATE_PRETTY_SHORT_NUMERIC_DATE;
   try {
-    //handle time zone shifting your printed date
-    const tzInfoString = hasTimeZoneInfo(dateString) ? '' : 'T12:00:00Z';
-    const tzDateString = `${ dateString }${ tzInfoString }`
-    const dateObj = new Date( tzDateString );
+    const dateObj = getTimeZoneNeutralDate( dateString );
     
     //did we successfully parse a date?
     if (dateObj instanceof Date && !isNaN(dateObj.getTime())) {
@@ -675,4 +672,11 @@ export const prettyPrintNotionDate = (dateString, format) => {
   catch(e) {
   }
   return '';
+};
+
+const getTimeZoneNeutralDate = dateString => {
+  const tzInfoString = hasTimeZoneInfo(dateString) ? '' : 'T12:00:00Z';
+  const tzDateString = `${ dateString }${ tzInfoString }`
+  const dateObj = new Date( tzDateString );
+  return dateObj;
 };
