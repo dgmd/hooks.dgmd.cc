@@ -477,9 +477,18 @@ export const useNotionData = url => {
   useEffect( () => {
 
     async function fetchData() {
-      const response = await fetch( url );
-      const parsedJsonObject = await response.json( );
-      setJsonObject( x => parsedJsonObject );
+      try {
+        const response = await fetch( url );
+        const parsedJsonObject = await response.json( );
+        setJsonObject( x => parsedJsonObject );
+      }
+      catch( err ) {
+        //this is not sophisticated error handling
+        //but forces a re-render and will move to 'invalid' state
+        setJsonObject( x => {
+          return {};
+        } );
+      }
     }
 
     if (url) {
@@ -496,7 +505,6 @@ export const useNotionData = url => {
     async function fetchData() {
       const crudResponse = await fetch( crudURL );
       const parsedCrudJsonObject = await crudResponse.json( );
-      console.log( 'result', parsedCrudJsonObject );
 
       const response = await fetch( url );
       const parsedJsonObject = await response.json( );
