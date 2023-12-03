@@ -442,6 +442,33 @@ export const useNotionData = url => {
       return dbBlocks[pageIdx];
     };
 
+    func.getRelationDataFromPgId = ( dbId, pageId, relationKey, relationField ) => {
+      const pg = func.getPage( dbId, pageId );
+      return func.getRelationDataFromPg( pg, relationKey, relationField );
+    };
+
+    func.getRelationDataFromPg = ( page, relationKey, relationField ) => {
+
+      const relationData = page[DGMDCC_BLOCK_PROPERTIES][relationKey];
+      if (isNil(relationData)) {
+        return [];
+      }
+      const relationDataValue = relationData[DGMDCC_BLOCK_VALUE];
+      if (isNil(relationDataValue) || 
+          !Array.isArray(relationDataValue) ||
+          relationDataValue.length === 0) {
+        return [];
+      }
+      return relationDataValue.map( relation => {
+        const rDbId = relation['DATABASE_ID'];
+        const rPgId = relation['PAGE_ID'];
+        const rPg = func.getPage( rDbId, rPgId );
+        return rPg[DGMDCC_BLOCK_PROPERTIES][relationField][DGMDCC_BLOCK_VALUE];
+      } );
+
+    };
+
+
     return func;
   }, [
     jsonObject
