@@ -7,6 +7,7 @@ import {
   BLOCK_TYPE_RELATION,
   BLOCK_TYPE_RICH_TEXT,
   BLOCK_TYPE_TITLE,
+  BLOCK_TYPE_NUMBER,
   DATE_PRETTY_SHORT_DATE,
   DATE_PRETTY_SHORT_NUMERIC_DATE,
   DGMDCC_BLOCK_DATE_END,
@@ -15,12 +16,15 @@ import {
   DGMDCC_BLOCK_TYPE,
   DGMDCC_BLOCK_VALUE,
   getPageId,
+  getPageProperty,
+  getRelationData,
   prettyPrintNotionDate,
   useNotionData
 } from '../hooks/notionDataHook.js';
 
 import {
-  useCallback
+  useCallback,
+  useState
 } from 'react';
 
 export default function Home() {
@@ -30,37 +34,23 @@ export default function Home() {
     nataJSON,
     crudding
   ] = useNotionData(
-    // 'http://localhost:3000/api/query?d=529a56b3cc2b44798a98e5e0c39ffa47&b=false&r=true' );
-    'http://localhost:3000/api/prototype?i=ad16fb5b-5a52-4bcc-b663-0ea870565599' );
+    'http://localhost:3000/api/query?d=b7aa7231356a47d18ff271ffb641bc6c&b=false&r=true&c=d'
+  );
+
+  const [searchTerms, setSearchTerms] = useState( '' );
+
 
   const cbUpdatePage = useCallback( (dbId, pageId) => {
     if (!nata || !nata.isValid()) {
       return;
     }
     const updatePageObj = {
-      "Name": {
+      'Name': {
         [DGMDCC_BLOCK_TYPE]: BLOCK_TYPE_TITLE,
-        [DGMDCC_BLOCK_VALUE]: "updated" + Math.floor(Math.random() * 100)
-       },
-      "🗿 PUB CUSTOMERS": {
-        [DGMDCC_BLOCK_TYPE]: BLOCK_TYPE_RELATION,
-        [DGMDCC_BLOCK_VALUE]: [
-          'fa3fd539b88148beadfd8d4628bb941f'
-        ]
-      },
-      "Date": {
-        [DGMDCC_BLOCK_TYPE]: BLOCK_TYPE_DATE,
-        [DGMDCC_BLOCK_VALUE]: {
-          [DGMDCC_BLOCK_DATE_START]: "2043-11-02",
-          [DGMDCC_BLOCK_DATE_END]: "2193-11-02T00:00:00.000-04:00",
-        }
+        [DGMDCC_BLOCK_VALUE]: 'New Title'
       }
     };
     const updatePageMetaObj = {
-      'icon': {
-        [DGMDCC_BLOCK_TYPE]: BLOCK_TYPE_EMOJI,
-        [DGMDCC_BLOCK_VALUE]: "😊"
-      }
     };
     nata.updatePage( dbId, pageId, updatePageObj, updatePageMetaObj );
   }, [
@@ -72,66 +62,8 @@ export default function Home() {
       return;
     }
     const createPageObj = {
-      "blurb": {
-        [DGMDCC_BLOCK_TYPE]: BLOCK_TYPE_RICH_TEXT,
-        [DGMDCC_BLOCK_VALUE]: "rich text here, yes there is "+ Math.floor(Math.random() * 100)
-      },
-      // "yepchecky": {
-      //   [DGMDCC_BLOCK_TYPE]: BLOCK_TYPE_CHECKBOX,
-      //   [DGMDCC_BLOCK_VALUE]: true
-      // },
-      // "Tags": {
-      //   [DGMDCC_BLOCK_TYPE]: BLOCK_TYPE_MULTI_SELECT,
-      //   [DGMDCC_BLOCK_VALUE]: [
-      //    null,
-      //    "tag2"
-      //   ]
-      // },
-      // "Status": {
-      //   [DGMDCC_BLOCK_TYPE]: BLOCK_TYPE_STATUS,
-      //   [DGMDCC_BLOCK_VALUE]: "wakaka"
-      // },
-      // "numberfield": {
-      //   [DGMDCC_BLOCK_TYPE]: BLOCK_TYPE_NUMBER,
-      //   [DGMDCC_BLOCK_VALUE]: 42
-      // },
-      // "selecty": {
-      //   [DGMDCC_BLOCK_TYPE]: BLOCK_TYPE_SELECT,
-      //   [DGMDCC_BLOCK_VALUE]: "red"
-      // },
-      // "ringring": {
-      //   [DGMDCC_BLOCK_TYPE]: BLOCK_TYPE_PHONE_NUMBER,
-      //   [DGMDCC_BLOCK_VALUE]: "1234567890"
-      // },
-      // "kewl_urrrrls": {
-      //   [DGMDCC_BLOCK_TYPE]: BLOCK_TYPE_URL,
-      //   [DGMDCC_BLOCK_VALUE]: "ftp://warez.ie"
-      // },
-      // "yerrremails": {
-      //   [DGMDCC_BLOCK_TYPE]: BLOCK_TYPE_EMAIL,
-      //   [DGMDCC_BLOCK_VALUE]: "joemail<at>gmail.com"
-      // },
-      // "rich": {
-      //   [DGMDCC_BLOCK_TYPE]: BLOCK_TYPE_RICH_TEXT,
-      //   [DGMDCC_BLOCK_VALUE]: "rich text here, yes there is"
-      // },
-      // "mydate": {
-      //   [DGMDCC_BLOCK_TYPE]: BLOCK_TYPE_DATE,
-      //   [DGMDCC_BLOCK_VALUE]: {
-      //     [DGMDCC_BLOCK_DATE_START]: "2043-11-02T00:00:00.000-04:00",
-      //     // [DGMDCC_BLOCK_DATE_END]: "2093-11-02T00:00:00.000-04:00",
-      //   }
-      // }
     };
     const pageMetaObj = {
-      'icon': {
-        [DGMDCC_BLOCK_TYPE]: BLOCK_TYPE_EMOJI,
-        [DGMDCC_BLOCK_VALUE]: "🥨"
-      },
-      'cover': {
-        [DGMDCC_BLOCK_TYPE]: BLOCK_TYPE_FILE_EXTERNAL,
-        [DGMDCC_BLOCK_VALUE]: "https://www.google.com/images/branding/googlelogo/2x/googlelogo_color_272x92dp.png"
-      }
     };
     nata.createPage( dbId, createPageObj, pageMetaObj );
   }, [
@@ -142,7 +74,7 @@ export default function Home() {
     if (!nata || !nata.isValid()) {
       return;
     }
-    nata.sortPages( dbId, ['Dates'], [true] );
+    // nata.sortPages( dbId, ['Price', 'Dates'], [true, true] );
   }, [
     nata
   ] );
@@ -177,17 +109,32 @@ export default function Home() {
       >
         SORT
       </div>
+      <input
+        type="text"
+        onChange={ (e) => {
+          const searchTerms = e.target.value;
+          setSearchTerms( searchTerms );
+          nata.searchPages( dbId, searchTerms );
+        } }
+        value={ searchTerms }
+      />
 
       {
-        nata.getPages( dbId ).map( ( page, i ) => {
-          const datesBlock = page[DGMDCC_BLOCK_PROPERTIES]['Dates'];
-          const startDate = datesBlock[DGMDCC_BLOCK_VALUE][DGMDCC_BLOCK_DATE_START];
-          const endDate = datesBlock[DGMDCC_BLOCK_VALUE][DGMDCC_BLOCK_DATE_END];
+        nata.hasNextCursor( ) && (
+          <div
+            onClick={ () => nata.loadNextCursor( ) }
+            style={ linkStyle }
+          >
+            MORE
+          </div>
+        )
+      }
 
-          const hostBlock = page[DGMDCC_BLOCK_PROPERTIES]['Host'];
-          const hostDbId = hostBlock[DGMDCC_BLOCK_VALUE][0]['DATABASE_ID'];
-          const hostPgId = hostBlock[DGMDCC_BLOCK_VALUE][0]['PAGE_ID'];
-          const hostData = nata.getPage( hostDbId, hostPgId );
+      {
+        nata.getSearchedPages( dbId ).map( ( page, i ) => {
+
+          // const qs = nata.getRelationDataFromPg( page, 'Questions', 'Question' );
+
 
           return (
             <div
@@ -201,37 +148,13 @@ export default function Home() {
               key={ i }
             >
               <pre>
-              { JSON.stringify( page, null, 1 ) }
+              { i }
               </pre>
-              <div>
-                START DATE:
-                {
-                prettyPrintNotionDate(
-                  startDate,
-                  DATE_PRETTY_SHORT_DATE
-                )
-                }
-              </div>
-              <div>
-                END DATE:
-                {
-                prettyPrintNotionDate(
-                  endDate,
-                  DATE_PRETTY_SHORT_NUMERIC_DATE
-                )
-                }
-              </div>
-              <div>
-              HOST:
+
               {
-                hostData[DGMDCC_BLOCK_PROPERTIES]['First Name'][DGMDCC_BLOCK_VALUE] + 
-                ' ' +
-                hostData[DGMDCC_BLOCK_PROPERTIES]['Last Name'][DGMDCC_BLOCK_VALUE]
+                getPageProperty( page, 'Question' )
               }
-              </div>
-              <div>
               
-              </div>
               <div
                 style={{
                   paddingTop: '2px',
@@ -259,7 +182,7 @@ export default function Home() {
               </div>
             </div>
           );
-        })
+        } )
       }
 
     </div>

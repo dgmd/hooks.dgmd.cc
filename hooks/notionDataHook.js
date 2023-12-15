@@ -1,5 +1,3 @@
-
-
 import {
   useEffect,
   useMemo,
@@ -7,11 +5,11 @@ import {
   useState
 } from 'react';
 
-
 const NOTION_RESULT_PRIMARY_DATABASE = 'NOTION_RESULT_PRIMARY_DATABASE';
 const NOTION_RESULT_RELATION_DATABASES = 'NOTION_RESULT_RELATION_DATABASES';
 const NOTION_RESULT_DATABASE_ID = 'NOTION_RESULT_DATABASE_ID';
 const NOTION_RESULT_BLOCKS = 'NOTION_RESULT_BLOCKS';
+const NOTION_RESULT_CURSOR_DATA = 'NOTION_RESULT_CURSOR_DATA';
 
 export const NOTION_RESULT = 'NOTION_RESULT';
 export const NOTION_RESULT_SUCCESS = 'NOTION_RESULT_SUCCESS';
@@ -50,7 +48,9 @@ export const BLOCK_TYPE_RELATION = 'relation';
 export const DGMDCC_BLOCK_DATE_START = 'start';
 export const DGMDCC_BLOCK_DATE_END = 'end';
 
-
+const URL_SEARCH_PARAM_PAGE_CURSOR_TYPE_REQUEST = 'c';
+const URL_SEARCH_PARAM_PAGE_CURSOR_ID_REQUEST = 'i';
+const URL_PAGE_CURSOR_TYPE_SPECIFIC = 's';
 
 const URL_SEARCH_PARAM_ACTION = 'a';
 const URL_SEARCH_PARAM_DELETE_BLOCK_ID = 'dbi';
@@ -66,6 +66,9 @@ const URL_SEARCH_PARAM_UPDATE_META = 'um';
 
 const SNAPSHOT_TIMESTAMP = 'SNAPSHOT_TIMESTAMP';
 
+const NOTION_HAS_MORE = 'has_more';
+const NOTION_NEXT_CURSOR = 'next_cursor';
+
 
 export const CRUD_RESULT_STATUS = 'CRUD_RESULT_STATUS';
 export const CRUD_ERROR = 'CRUD_ERROR';
@@ -80,6 +83,12 @@ export const useNotionData = url => {
   const [jsonObject, setJsonObject] = useState( null );
   const rJsonObject = useRef( jsonObject );
   rJsonObject.current = jsonObject;
+
+  const rSortRules = useRef( {} );
+  const rSearchedTerms = useRef( {} );
+  const rSearchedResults = useRef( {} );
+
+  const rCursorPageNumbers = useRef( 30 );
 
   const [crudURL, setCrudURL] = useState( null );
   const rCRUDDING = useRef( false );
@@ -152,19 +161,35 @@ export const useNotionData = url => {
       }
     };
 
-    func.getPages = dbId => {
-      try {
-        const db = func.getDb( dbId );
-        const dbBlocks = db[NOTION_RESULT_BLOCKS];
-        return dbBlocks;
-      }
-      catch( err ) {
-        return [];
-      }
+    func.setPageCursorNumbers = num => {
+      rCursorPageNumbers.current = num;
     };
 
     func.sortPages = ( dbId, fields, directions ) => {
+      fields = Array.isArray(fields) ? fields : [];
+      directions = Array.isArray(directions) ? directions : [];
+      rSortRules.current = {
+        dbId: {
+          fields,
+          directions
+        }
+      };
+      return func._sortPages( dbId );
+    };
+
+    func._sortPages = ( dbId ) => {
+      const getSortRules = dbId => {
+        if (!(dbId in rSortRules.current)) {
+          return {
+            fields: [],
+            directions: []
+          };
+        }
+      };
       const pgs = func.getPages( dbId );
+      const sortRules = getSortRules( dbId );
+      const fields = sortRules.fields;
+      const directions = sortRules.directions;
       const fieldsLen = Array.isArray(fields) ? fields.length : 0;
       pgs.sort( (a, b) => {
         for (let i = 0; i < fieldsLen; i++) {
@@ -233,6 +258,128 @@ export const useNotionData = url => {
       if (fieldsLen > 0 && pgs.length > 1) {
         setJsonObject( x => JSON.parse( JSON.stringify( rJsonObject.current ) ) );
       }
+      //todo: freeze the object on the way out
+      return rJsonObject.current;
+    };
+
+    func.searchPages = ( dbId, searchTerms ) => {
+
+      const searchPage = ( pg, searchLower, searchedPgsMap, depth ) => {
+        const pgMetas = pg[DGMDCC_BLOCK_METADATA];
+        const pgProps = pg[DGMDCC_BLOCK_PROPERTIES];
+        const pgId = pgMetas[DGMDCC_BLOCK_ID][DGMDCC_BLOCK_VALUE];
+        depth.push( pgId );
+        if (searchedPgsMap.has( pgId )) {
+          return searchedPgsMap.get( pgId );
+        }
+        const pgKeys = Object.keys( pgProps );
+        for (const pgKey of pgKeys) {
+          const pgProp = pgProps[pgKey];
+          const pgVal = pgProp[DGMDCC_BLOCK_VALUE];
+          if (!isNil(pgVal)) {
+            const pgType = pgProp[DGMDCC_BLOCK_TYPE];
+            if (pgType === BLOCK_TYPE_TITLE ||
+                pgType === BLOCK_TYPE_RICH_TEXT ||
+                pgType === BLOCK_TYPE_NUMBER ||
+                pgType === BLOCK_TYPE_EMAIL ||
+                pgType === BLOCK_TYPE_PHONE_NUMBER ||
+                pgType === BLOCK_TYPE_URL ||
+                pgType === BLOCK_TYPE_SELECT ||
+                pgType === BLOCK_TYPE_STATUS) {
+              const pgValLower = pgVal.toString().toLowerCase();
+              if ( pgValLower.indexOf( searchLower ) >= 0 ) {
+                searchedPgsMap.set( pgId, true );
+                return true;
+              }
+            }
+            else if (pgType === BLOCK_TYPE_MULTI_SELECT) {
+              for (const msVal of pgVal) {
+                const msValLower = msVal.toString().toLowerCase();
+                if (msValLower.indexOf( searchLower ) >= 0) {
+                  searchedPgsMap.set( pgId, true );
+                  return true;
+                }
+              }
+            }
+          }
+        }
+        for (const pgKey of pgKeys) {
+          const pgProp = pgProps[pgKey];
+          const pgVal = pgProp[DGMDCC_BLOCK_VALUE];
+          if (!isNil(pgVal)) {
+            const pgType = pgProp[DGMDCC_BLOCK_TYPE];
+            if (pgType === BLOCK_TYPE_RELATION) {
+            for (const relPgObj of pgVal) {
+              const relDbId = relPgObj['DATABASE_ID'];
+              const relPgId = relPgObj['PAGE_ID'];
+              //if you are cycling back to yourself, then 
+              if (depth.includes( relPgId )) {
+                searchedPgsMap.set( pgId, false );
+                searchedPgsMap.set( relPgId, false );
+                return false;
+              }
+              const relPg = func.getPage( relDbId, relPgId );
+              if (searchPage( relPg, searchLower, searchedPgs, depth )) {
+                searchedPgsMap.set( pgId, true );
+                return true;
+              }
+            }
+          }
+        }
+        }
+        searchedPgsMap.set( pgId, false );
+        return false;
+      };
+
+      const pgs = func.getPages( dbId );
+      const searchTermsLower = searchTerms.toLowerCase();
+      const searchedPgs = new Map();
+      const searchedResults = pgs.filter( pg => {
+        const depth = [];
+        const found = searchPage( pg, searchTermsLower, searchedPgs, depth );
+        return found;
+      } );
+
+      rSearchedTerms.current[dbId] = searchTerms;
+      rSearchedResults.current[dbId] = searchedResults;
+
+      return searchedResults;
+    };
+
+    func.getPages = dbId => {
+      try {
+        const db = func.getDb( dbId );
+        const dbBlocks = db[NOTION_RESULT_BLOCKS];
+        return dbBlocks;
+      }
+      catch( err ) {
+        return [];
+      }
+    };
+
+    func.getPageCursors = dbId => {
+      const pgsLen = func.getPagesLength( dbId );
+      return Math.floor( pgsLen / rCursorPageNumbers.current );
+    };
+
+    func.getPagesByCursor = ( dbId, cursor ) => {
+      const pgsLen = func.getPagesLength( dbId );
+      if (cursor >= pgsLen) {
+        return [];
+      }
+      const pgs = func.getPages( dbId );
+      return pgs.slice( cursor, cursor + rCursorPageNumbers.current );
+    };
+
+    func.getSearchedPages = ( dbId ) => {
+      if (!(dbId in rSearchedTerms.current)) {
+        return func.getPages( dbId );
+      }
+      const searchTerms = rSearchedTerms.current[dbId];
+      if (searchTerms.trim() === '') {
+        return func.getPages( dbId );
+      }
+      return rSearchedResults.current[dbId];
     };
 
     func.getPagesLength = dbId => {
@@ -242,6 +389,20 @@ export const useNotionData = url => {
       }
       const dbBlocks = db[NOTION_RESULT_BLOCKS];
       return dbBlocks.length;
+    };
+
+    func.getSearchedPagesLength = dbId => {
+      const searchedPgs = func.getSearchedPages( dbId );
+      return searchedPgs.length;
+    };
+
+    func.getSearchedPagesByCursor = dbId => {
+      const pgsLen = func.getSearchedPagesLength( dbId );
+      if (cursor >= pgsLen) {
+        return [];
+      }
+      const pgs = func.getSearchedPages( dbId );
+      return pgs.slice( cursor, cursor + rCursorPageNumbers.current );
     };
 
     func.isLiveData = () => {
@@ -283,6 +444,7 @@ export const useNotionData = url => {
         setCrudURL( x => updateUrl.href );
       }
       else {
+        // no need to sort, since we're deleting
         dbBlocks.splice( pageIdx, 1 );
         setJsonObject( x => JSON.parse( JSON.stringify( rJsonObject.current ) ) );
 
@@ -345,7 +507,8 @@ export const useNotionData = url => {
         };
         dbBlocks.unshift( page );
         setJsonObject( x => JSON.parse( JSON.stringify( rJsonObject.current ) ) );
-
+        func._sortPages( func.getPrimaryDbId() );
+        
         rCRUDDING.current = false;
         rObj[CRUD_RESULT_STATUS] = CRUD_RESULT_STATUS_SUCCESS;
       }
@@ -420,6 +583,7 @@ export const useNotionData = url => {
         rObj[CRUD_RESULT_STATUS] = CRUD_RESULT_STATUS_SUCCESS;
 
         setJsonObject( x => JSON.parse( JSON.stringify( rJsonObject.current ) ) );
+        func._sortPages( func.getPrimaryDbId() );
       }
 
       return rObj;
@@ -432,8 +596,9 @@ export const useNotionData = url => {
       }
       const dbBlocks = db[NOTION_RESULT_BLOCKS];
       const pageIdx = dbBlocks.findIndex( block => {
-        const blockIdData = block[DGMDCC_BLOCK_METADATA][DGMDCC_BLOCK_ID];
-        const blockId = blockIdData[DGMDCC_BLOCK_VALUE];
+        const blockIdMeta = block[DGMDCC_BLOCK_METADATA];
+        const blockIdObj = blockIdMeta[DGMDCC_BLOCK_ID];
+        const blockId = blockIdObj[DGMDCC_BLOCK_VALUE];
         return blockId === pageId;
       } );
       if (pageIdx < 0) {
@@ -468,6 +633,61 @@ export const useNotionData = url => {
 
     };
 
+    func.hasNextCursorData = () => {
+      return !isNil( func.getNextCursorData() );
+    };
+
+    func.getNextCursorData = () => {
+      const db = func.getDb( func.getPrimaryDbId() );
+      if (isNil(db)) {
+        return null;
+      }
+      const cursorData = db[NOTION_RESULT_CURSOR_DATA];
+      return cursorData;
+    };
+
+    func.hasAllCursors = () => {
+      if (func.hasNextCursorData()) {
+        return Array.isArray( func.getNextCursorData()[NOTION_NEXT_CURSOR] );
+      }
+    };
+
+    func.getNextCursor = () => {
+      const npcd = func.getNextCursorData();
+      if (isNil(npcd)) {
+        return null;
+      }
+      if (npcd[NOTION_HAS_MORE] === false) {
+        return null;
+      }
+      return npcd[NOTION_NEXT_CURSOR];
+    };
+
+    func.hasNextCursor = () => {
+      return !isNil( func.getNextCursor() );
+    };
+
+    func.loadNextCursor = () => {
+      if (!func.isLiveData()) {
+        return;
+      }
+      if (func.hasNextCursorData() && !func.hasAllCursors()) {
+        const nc = func.getNextCursor();
+        if (isNil(nc)) {
+          return;
+        }
+        const params = new URLSearchParams(urlObj.search);
+        params.set( URL_SEARCH_PARAM_PAGE_CURSOR_TYPE_REQUEST, URL_PAGE_CURSOR_TYPE_SPECIFIC );
+        params.set( URL_SEARCH_PARAM_PAGE_CURSOR_ID_REQUEST, nc );
+
+        const modifiedUrl = new URL(urlObj.origin + urlObj.pathname);
+        modifiedUrl.search = params.toString();
+        rCRUDDING.current = true;
+        setCrudURL( x => {
+          return modifiedUrl.href;
+        } );
+      }
+    };
 
     return func;
   }, [
@@ -480,9 +700,13 @@ export const useNotionData = url => {
       try {
         const response = await fetch( url );
         const parsedJsonObject = await response.json( );
+        console.log( 'parsedJsonObject', parsedJsonObject );
+
         setJsonObject( x => parsedJsonObject );
+        mData._sortPages( mData.getPrimaryDbId() );
       }
       catch( err ) {
+        console.log( 'err', err );
         //this is not sophisticated error handling
         //but forces a re-render and will move to 'invalid' state
         setJsonObject( x => {
@@ -502,13 +726,46 @@ export const useNotionData = url => {
 
   useEffect( () => {
 
+    const getPgs = obj => {
+      return obj[NOTION_RESULT][NOTION_RESULT_PRIMARY_DATABASE][NOTION_RESULT_BLOCKS];
+    };
+
     async function fetchData() {
       const crudResponse = await fetch( crudURL );
       const parsedCrudJsonObject = await crudResponse.json( );
 
-      const response = await fetch( url );
-      const parsedJsonObject = await response.json( );
-      setJsonObject( x => parsedJsonObject );
+      const params = new URLSearchParams(crudURL);
+      if (params.has( URL_SEARCH_PARAM_PAGE_CURSOR_TYPE_REQUEST )) {
+        const exsPrimaryPgs = getPgs( rJsonObject.current );
+        const newPrimaryPgs = getPgs( parsedCrudJsonObject );
+        const merged = mergeLists( exsPrimaryPgs, newPrimaryPgs );
+        rJsonObject.current[NOTION_RESULT][NOTION_RESULT_PRIMARY_DATABASE][NOTION_RESULT_BLOCKS] = merged;
+
+        const relDbs = parsedCrudJsonObject[NOTION_RESULT][NOTION_RESULT_RELATION_DATABASES];
+        for (const relDb of relDbs) {
+          const relDbId = relDb[NOTION_RESULT_DATABASE_ID];
+          const exDb = rJsonObject.current[NOTION_RESULT][NOTION_RESULT_RELATION_DATABASES].find( 
+            db => db[NOTION_RESULT_DATABASE_ID] === relDbId );
+          if (exDb) {
+            const exRelPgs = exDb[NOTION_RESULT_BLOCKS];
+            const newRelPgs = relDb[NOTION_RESULT_BLOCKS];
+            const merged = mergeLists( exRelPgs, newRelPgs );
+            exDb[NOTION_RESULT_BLOCKS] = merged;
+          }
+          else {
+            rJsonObject.current[NOTION_RESULT][NOTION_RESULT_RELATION_DATABASES].push( relDb );
+          }
+        }
+
+        const cursorData = 
+          parsedCrudJsonObject[NOTION_RESULT][NOTION_RESULT_PRIMARY_DATABASE][NOTION_RESULT_CURSOR_DATA];
+        rJsonObject.current[NOTION_RESULT][NOTION_RESULT_PRIMARY_DATABASE][NOTION_RESULT_CURSOR_DATA] = cursorData;
+
+        const newJsonObject = JSON.parse( JSON.stringify( rJsonObject.current ) );
+        rJsonObject.current = newJsonObject;
+        setJsonObject( x => newJsonObject );
+        func._sortPages( func.getPrimaryDbId() );
+      }
 
       setCrudURL( x => null );
       rCRUDDING.current = false;
@@ -650,6 +907,24 @@ const mmBlocktoHeaderBlock = ( block ) => {
 
 export const getPageId = page => page[DGMDCC_BLOCK_METADATA][DGMDCC_BLOCK_ID][DGMDCC_BLOCK_VALUE];
 
+export const getPageProperty = (page, propertyKey) => {
+  if (isNil(page)) {
+    return null;
+  }
+  if (!(DGMDCC_BLOCK_PROPERTIES in page)) {
+    return null;
+  }
+  const properties = page[DGMDCC_BLOCK_PROPERTIES];
+  if (!(propertyKey in properties)) {
+    return null;
+  }
+  const propertyObject = properties[propertyKey];
+  if (!(DGMDCC_BLOCK_VALUE in propertyObject)) {
+    return null;
+  }
+  return propertyObject[DGMDCC_BLOCK_VALUE];
+};
+
 //
 //  UTILS
 //
@@ -714,4 +989,27 @@ const getTimeZoneNeutralDate = dateString => {
   const tzDateString = `${ dateString }${ tzInfoString }`
   const dateObj = new Date( tzDateString );
   return dateObj;
+};
+
+const mergeLists = (existingList, incomingList) => {
+  if (isNil(existingList)) {
+      return incomingList;
+  }
+  if (isNil(incomingList)) {
+      return existingList;
+  }
+  const getId = obj => obj[DGMDCC_BLOCK_METADATA][DGMDCC_BLOCK_ID][DGMDCC_BLOCK_VALUE];
+
+  const mergedList = [...existingList, ...incomingList.reduce((acc, obj) => {
+    const existingIndex = existingList.findIndex(
+      item => getId(item) === getId(obj) );
+    if (existingIndex !== -1) {
+        existingList[existingIndex] = obj; // Replace existing object
+    }
+    else {
+        acc.push(obj); // Add new object
+    }
+    return acc;
+  }, [])];
+  return mergedList;
 };
