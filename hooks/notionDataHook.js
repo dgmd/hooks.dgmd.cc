@@ -85,6 +85,9 @@ export const useNotionData = url => {
   rJsonObject.current = jsonObject;
 
   const rSortRules = useRef( {} );
+
+  const [searchResults, setSearchResults] = useState( [] );
+  const [searchTerms, setSearchTerms] = useState( '' );
   const rSearchedTerms = useRef( {} );
   const rSearchedResults = useRef( {} );
 
@@ -359,7 +362,8 @@ export const useNotionData = url => {
 
       rSearchedTerms.current[dbId] = searchTerms;
       rSearchedResults.current[dbId] = searchedResults;
-
+      setSearchResults( x => searchedResults );
+      setSearchTerms( x => searchTerms );
       return searchedResults;
     };
 

@@ -76,8 +76,7 @@ export default function Home() {
       return;
     }
     nata.sortPages( dbId, ['Question'], [true] );
-    console.log( 'about to sort relation age')
-    nata.sortPages( "218001566adf4b28b15906ed4dafd9a3", ['Age'], [false] );
+    nata.sortPages( nata.getRelationDbIds[1], ['Age'], [false] );
   }, [
     nata
   ] );
@@ -116,7 +115,7 @@ export default function Home() {
         type="text"
         onChange={ (e) => {
           const searchTerms = e.target.value;
-          setSearchTerms( searchTerms );
+          setSearchTerms( searchTerms )
           nata.searchPages( dbId, searchTerms );
         } }
         value={ searchTerms }
