@@ -19,6 +19,7 @@ import {
   getPageProperty,
   getRelationData,
   prettyPrintNotionDate,
+  getRelationDataFromPgId,
   useNotionData
 } from '../hooks/notionDataHook.js';
 
@@ -74,7 +75,9 @@ export default function Home() {
     if (!nata || !nata.isValid()) {
       return;
     }
-    // nata.sortPages( dbId, ['Price', 'Dates'], [true, true] );
+    nata.sortPages( dbId, ['Question'], [true] );
+    console.log( 'about to sort relation age')
+    nata.sortPages( "218001566adf4b28b15906ed4dafd9a3", ['Age'], [false] );
   }, [
     nata
   ] );
@@ -132,6 +135,7 @@ export default function Home() {
 
       {
         nata.getSearchedPages( dbId ).map( ( page, i ) => {
+          const pageId = getPageId( page );
 
           // const qs = nata.getRelationDataFromPg( page, 'Questions', 'Question' );
 
@@ -154,7 +158,11 @@ export default function Home() {
               {
                 getPageProperty( page, 'Question' )
               }
+              {
+                nata.getRelationDataFromPgId( dbId, pageId, 'Playlists', 'Age' )?.join( ', ' )
+              }
               
+
               <div
                 style={{
                   paddingTop: '2px',

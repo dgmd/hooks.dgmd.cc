@@ -168,11 +168,9 @@ export const useNotionData = url => {
     func.sortPages = ( dbId, fields, directions ) => {
       fields = Array.isArray(fields) ? fields : [];
       directions = Array.isArray(directions) ? directions : [];
-      rSortRules.current = {
-        dbId: {
-          fields,
-          directions
-        }
+      rSortRules.current[dbId] = {
+        fields,
+        directions
       };
       return func._sortPages( dbId );
     };
@@ -185,6 +183,7 @@ export const useNotionData = url => {
             directions: []
           };
         }
+        return rSortRules.current[dbId];
       };
       const pgs = func.getPages( dbId );
       const sortRules = getSortRules( dbId );
@@ -255,7 +254,9 @@ export const useNotionData = url => {
         return 0;
       } );
 
+      console.log( 'fieldsLen', fieldsLen, 'pgs.Len', pgs.length );
       if (fieldsLen > 0 && pgs.length > 1) {
+        console.log( '_sortPages3' );
         setJsonObject( x => JSON.parse( JSON.stringify( rJsonObject.current ) ) );
       }
       //todo: freeze the object on the way out
@@ -264,11 +265,16 @@ export const useNotionData = url => {
 
     func.searchPages = ( dbId, searchTerms ) => {
 
-      const searchPage = ( pg, searchLower, searchedPgsMap, depth ) => {
+      const searchPage = ( pg, searchLower, searchedPgsMap, allSearched, depth ) => {
+
+        if (depth > 1) {
+          return false;
+        }
+
         const pgMetas = pg[DGMDCC_BLOCK_METADATA];
         const pgProps = pg[DGMDCC_BLOCK_PROPERTIES];
         const pgId = pgMetas[DGMDCC_BLOCK_ID][DGMDCC_BLOCK_VALUE];
-        depth.push( pgId );
+        allSearched.push( pgId );
         if (searchedPgsMap.has( pgId )) {
           return searchedPgsMap.get( pgId );
         }
@@ -310,18 +316,13 @@ export const useNotionData = url => {
             const pgType = pgProp[DGMDCC_BLOCK_TYPE];
             if (pgType === BLOCK_TYPE_RELATION) {
             for (const relPgObj of pgVal) {
-              const relDbId = relPgObj['DATABASE_ID'];
               const relPgId = relPgObj['PAGE_ID'];
-              //if you are cycling back to yourself, then 
-              if (depth.includes( relPgId )) {
-                searchedPgsMap.set( pgId, false );
-                searchedPgsMap.set( relPgId, false );
-                return false;
-              }
-              const relPg = func.getPage( relDbId, relPgId );
-              if (searchPage( relPg, searchLower, searchedPgs, depth )) {
-                searchedPgsMap.set( pgId, true );
-                return true;
+              if (!allSearched.includes( relPgId )) {
+                const relDbId = relPgObj['DATABASE_ID'];
+                const relPg = func.getPage( relDbId, relPgId );
+                if (searchPage( relPg, searchLower, searchedPgsMap, allSearched, depth + 1 )) {
+                  return true;
+                }
               }
             }
           }
@@ -335,8 +336,24 @@ export const useNotionData = url => {
       const searchTermsLower = searchTerms.toLowerCase();
       const searchedPgs = new Map();
       const searchedResults = pgs.filter( pg => {
-        const depth = [];
-        const found = searchPage( pg, searchTermsLower, searchedPgs, depth );
+        const allSearched = [];
+        const depth = 0;
+
+        // const searchCriteria = [
+        //   'question',
+        //   'color',
+        //   {
+        //     playlist: [
+              
+        //     ]
+        //   }
+        // ]
+
+        const found = searchPage(
+          pg, searchTermsLower, searchedPgs, allSearched, depth );
+        if (found) {
+          console.log( 'FOUND', pg, allSearched, depth );
+        }
         return found;
       } );
 
@@ -396,7 +413,7 @@ export const useNotionData = url => {
       return searchedPgs.length;
     };
 
-    func.getSearchedPagesByCursor = dbId => {
+    func.getSearchedPagesByCursor = (dbId, cursor) => {
       const pgsLen = func.getSearchedPagesLength( dbId );
       if (cursor >= pgsLen) {
         return [];
