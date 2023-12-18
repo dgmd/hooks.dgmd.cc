@@ -20,7 +20,17 @@ import {
   getRelationData,
   prettyPrintNotionDate,
   getRelationDataFromPgId,
-  useNotionData
+  useNotionData,
+  SEARCH_TYPE,
+  SEARCH_TYPE_COMPLEX,
+  SEARCH_TYPE_DEPTH,
+  SEARCH_TYPE_SIMPLE,
+  SEARCH_INFO,
+  SEARCH_DEPTH,
+  SEARCH_FIELD,
+  SEARCH_QUERY,
+  SEARCH_INCLUDE,
+  SEARCH_PROPERTY
 } from '../hooks/notionDataHook.js';
 
 import {
@@ -35,7 +45,8 @@ export default function Home() {
     nataJSON,
     crudding
   ] = useNotionData(
-    'http://localhost:3000/api/query?d=b7aa7231356a47d18ff271ffb641bc6c&b=false&r=true&c=d'
+    'http://localhost:3001/api/query?d=b7aa7231356a47d18ff271ffb641bc6c&b=false&r=true&c=d'
+    // http://localhost:3001/api/query?d=b7aa7231356a47d18ff271ffb641bc6c&b=false&r=true&c=d
   );
 
   const [searchTerms, setSearchTerms] = useState( '' );
@@ -76,7 +87,7 @@ export default function Home() {
       return;
     }
     nata.sortPages( dbId, ['Question'], [true] );
-    nata.sortPages( nata.getRelationDbIds[1], ['Age'], [false] );
+    // nata.sortPages( nata.getDbIdByName('Question'), ['Age'], [false] );
   }, [
     nata
   ] );
@@ -115,8 +126,39 @@ export default function Home() {
         type="text"
         onChange={ (e) => {
           const searchTerms = e.target.value;
-          setSearchTerms( searchTerms )
-          nata.searchPages( dbId, searchTerms );
+          setSearchTerms( searchTerms );
+
+          // const searchObj = {
+          //   [SEARCH_TYPE]: SEARCH_TYPE_SIMPLE,
+          //   [SEARCH_INFO]: {
+          //     [SEARCH_QUERY]: searchTerms,
+          //     [SEARCH_DEPTH]: 1
+          //   }
+          // };
+
+          const searchObj = {
+            [SEARCH_TYPE]: SEARCH_TYPE_COMPLEX,
+            [SEARCH_INFO]: [ {
+              [SEARCH_PROPERTY]: true,
+              [SEARCH_FIELD]: 'Question',
+              [SEARCH_QUERY]: 'before',
+              [SEARCH_INCLUDE]: false
+            },
+            // {
+            //   [SEARCH_PROPERTY]: true,
+            //   [SEARCH_FIELD]: 'Question',
+            //   [SEARCH_QUERY]: 'popular',
+            //   [SEARCH_INCLUDE]: true
+            // },
+            {
+              [SEARCH_PROPERTY]: true,
+              [SEARCH_FIELD]: 'Jaime CT',
+              [SEARCH_QUERY]: 'CC',
+              [SEARCH_INCLUDE]: true
+            } ]
+          };
+
+          nata.searchPages( dbId, searchObj );
         } }
         value={ searchTerms }
       />

@@ -8,6 +8,7 @@ import {
 const NOTION_RESULT_PRIMARY_DATABASE = 'NOTION_RESULT_PRIMARY_DATABASE';
 const NOTION_RESULT_RELATION_DATABASES = 'NOTION_RESULT_RELATION_DATABASES';
 const NOTION_RESULT_DATABASE_ID = 'NOTION_RESULT_DATABASE_ID';
+const NOTION_RESULT_DATABASE_TITLE = 'NOTION_RESULT_DATABASE_TITLE';
 const NOTION_RESULT_BLOCKS = 'NOTION_RESULT_BLOCKS';
 const NOTION_RESULT_CURSOR_DATA = 'NOTION_RESULT_CURSOR_DATA';
 
@@ -48,6 +49,16 @@ export const BLOCK_TYPE_RELATION = 'relation';
 export const DGMDCC_BLOCK_DATE_START = 'start';
 export const DGMDCC_BLOCK_DATE_END = 'end';
 
+export const SEARCH_TYPE = 'SEARCH_TYPE';
+export const SEARCH_TYPE_COMPLEX = 'SEARCH_TYPE_COMPLEX';
+export const SEARCH_TYPE_SIMPLE = 'SEARCH_TYPE_SIMPLE';
+export const SEARCH_INFO = 'SEARCH_INFO';
+export const SEARCH_FIELD = 'SEARCH_FIELD';
+export const SEARCH_QUERY = 'SEARCH_QUERY';
+export const SEARCH_INCLUDE = 'SEARCH_INCLUDE';
+export const SEARCH_DEPTH = 'SEARCH_DEPTH';
+export const SEARCH_PROPERTY = 'SEARCH_PROPERTY';
+
 const URL_SEARCH_PARAM_PAGE_CURSOR_TYPE_REQUEST = 'c';
 const URL_SEARCH_PARAM_PAGE_CURSOR_ID_REQUEST = 'i';
 const URL_PAGE_CURSOR_TYPE_SPECIFIC = 's';
@@ -86,10 +97,11 @@ export const useNotionData = url => {
 
   const rSortRules = useRef( {} );
 
-  const [searchResults, setSearchResults] = useState( [] );
-  const [searchTerms, setSearchTerms] = useState( '' );
-  const rSearchedTerms = useRef( {} );
-  const rSearchedResults = useRef( {} );
+  const [searchResults, setSearchResults] = useState( {} );
+  const rSearchedResults = useRef( searchResults );
+  const [searchQueries, setSearchQueries] = useState( {} );
+  const rSearchQueries = useRef( searchQueries );
+
 
   const rCursorPageNumbers = useRef( 30 );
 
@@ -164,6 +176,30 @@ export const useNotionData = url => {
       }
     };
 
+    func.getDbIdByName = name => {
+      if (!rJsonObject.current) {
+        return null;
+      }
+      try {
+        const job = rJsonObject.current;
+        const primary = job[NOTION_RESULT_PRIMARY_DATABASE];
+        if (primary[NOTION_RESULT_DATABASE_TITLE] === name) {
+          return primary[NOTION_RESULT_DATABASE_ID];
+        }
+        const rels = job[NOTION_RESULT_RELATION_DATABASES];
+        for (var i=0; i<rels.length; i++) {
+          const db = rels[i];
+          if (db[NOTION_RESULT_DATABASE_TITLE] === name) {
+            return db[NOTION_RESULT_DATABASE_ID];
+          }
+        }
+        return null;
+      }
+      catch( err ) {
+        return null;
+      }
+    };
+
     func.setPageCursorNumbers = num => {
       rCursorPageNumbers.current = num;
     };
@@ -232,23 +268,18 @@ export const useNotionData = url => {
                 return 1 * direction;
               }
             }
-            if (aType === BLOCK_TYPE_MULTI_SELECT ||
-                aType === BLOCK_TYPE_RELATION) {
-              const aValJoin = aVal.join( ',' );
-              const bValJoin = bVal.join( ',' );
-              if (aValJoin < bValJoin) {
-                return -1 * direction;
+            if (aType === BLOCK_TYPE_MULTI_SELECT) {
+              const maxLen = Math.max( aVal.length, bVal.length );
+              for (let i = 0; i < maxLen; i++) {
+                const aValI = aVal[i] || '';
+                const bValI = bVal[i] || '';
+                if (aValI < bValI) {
+                  return -1 * direction;
+                }
+                if (aValI > bValI) {
+                  return 1 * direction;
+                }
               }
-              if (aValJoin > bValJoin) {
-                return 1 * direction;
-              }              
-            }
-
-            if (aVal < bVal) {
-              return -1 * direction;
-            }
-            if (aVal > bVal) {
-              return 1 * direction;
             }
           }
           catch (e) {
@@ -266,22 +297,23 @@ export const useNotionData = url => {
       return rJsonObject.current;
     };
 
-    func.searchPages = ( dbId, searchTerms ) => {
+    func.searchPages = ( dbId, searchObj ) => {
 
-      const searchPage = ( pg, searchLower, searchedPgsMap, allSearched, depth ) => {
-
-        if (depth > 1) {
-          return false;
-        }
+      const simpleSearchPage = ( 
+        pg, searchObj, searchedPgsMap, searchTracker, depth ) => {
 
         const pgMetas = pg[DGMDCC_BLOCK_METADATA];
         const pgProps = pg[DGMDCC_BLOCK_PROPERTIES];
         const pgId = pgMetas[DGMDCC_BLOCK_ID][DGMDCC_BLOCK_VALUE];
-        allSearched.push( pgId );
-        if (searchedPgsMap.has( pgId )) {
-          return searchedPgsMap.get( pgId );
+
+        const searchInfo = searchObj[SEARCH_INFO];
+        const query = searchInfo[SEARCH_QUERY].toLowerCase();
+        const searchDepth = searchInfo[SEARCH_DEPTH];
+        if (depth > searchDepth) {
+          return false;
         }
         const pgKeys = Object.keys( pgProps );
+
         for (const pgKey of pgKeys) {
           const pgProp = pgProps[pgKey];
           const pgVal = pgProp[DGMDCC_BLOCK_VALUE];
@@ -295,16 +327,17 @@ export const useNotionData = url => {
                 pgType === BLOCK_TYPE_URL ||
                 pgType === BLOCK_TYPE_SELECT ||
                 pgType === BLOCK_TYPE_STATUS) {
+              
               const pgValLower = pgVal.toString().toLowerCase();
-              if ( pgValLower.indexOf( searchLower ) >= 0 ) {
-                searchedPgsMap.set( pgId, true );
-                return true;
+              if ( pgValLower.indexOf( query ) >= 0 ) {
+                  searchedPgsMap.set( pgId, true );
+                  return true;
               }
             }
             else if (pgType === BLOCK_TYPE_MULTI_SELECT) {
               for (const msVal of pgVal) {
                 const msValLower = msVal.toString().toLowerCase();
-                if (msValLower.indexOf( searchLower ) >= 0) {
+                if (msValLower.indexOf( query ) >= 0) {
                   searchedPgsMap.set( pgId, true );
                   return true;
                 }
@@ -312,58 +345,111 @@ export const useNotionData = url => {
             }
           }
         }
+
         for (const pgKey of pgKeys) {
           const pgProp = pgProps[pgKey];
           const pgVal = pgProp[DGMDCC_BLOCK_VALUE];
           if (!isNil(pgVal)) {
             const pgType = pgProp[DGMDCC_BLOCK_TYPE];
             if (pgType === BLOCK_TYPE_RELATION) {
-            for (const relPgObj of pgVal) {
-              const relPgId = relPgObj['PAGE_ID'];
-              if (!allSearched.includes( relPgId )) {
-                const relDbId = relPgObj['DATABASE_ID'];
-                const relPg = func.getPage( relDbId, relPgId );
-                if (searchPage( relPg, searchLower, searchedPgsMap, allSearched, depth + 1 )) {
-                  return true;
+              for (const relPgObj of pgVal) {
+                const relPgId = relPgObj['PAGE_ID'];
+                if (!searchTracker.allSearched.includes( relPgId )) {
+                  const relDbId = relPgObj['DATABASE_ID'];
+                  const relPg = func.getPage( relDbId, relPgId );
+                  if (simpleSearchPage( relPg, searchObj, searchedPgsMap, searchTracker, depth + 1 )) {
+                    return true;
+                  }
                 }
               }
             }
           }
         }
-        }
-        searchedPgsMap.set( pgId, false );
+
         return false;
       };
 
+      const complexSearchPage = ( pg, searchInfo, searchedPgsMap, searchTracker ) => {
+        const pgMetas = pg[DGMDCC_BLOCK_METADATA];
+        const pgProps = pg[DGMDCC_BLOCK_PROPERTIES];
+        const pgId = pgMetas[DGMDCC_BLOCK_ID][DGMDCC_BLOCK_VALUE];
+        searchTracker.allSearched.push( pgId );
+        if (searchedPgsMap.has( pgId )) {
+          return searchedPgsMap.get( pgId );
+        }
+
+        const pgClears = []
+
+        for (const si of searchInfo) {
+          const siProp = si[SEARCH_PROPERTY];
+          const pgData = siProp ? pgProps : pgMetas;
+          const siField = si[SEARCH_FIELD];
+          if (!(siField in pgData)) {
+            pgClears.push( false );
+            break;
+          }
+
+          const siInclude = si[SEARCH_INCLUDE];
+          const siQuery = si[SEARCH_QUERY].toLowerCase();
+          const pgVal = pgData[siField][DGMDCC_BLOCK_VALUE];
+          const pgType = pgData[siField][DGMDCC_BLOCK_TYPE];
+          if (pgType === BLOCK_TYPE_TITLE ||
+              pgType === BLOCK_TYPE_RICH_TEXT ||
+              pgType === BLOCK_TYPE_NUMBER ||
+              pgType === BLOCK_TYPE_EMAIL ||
+              pgType === BLOCK_TYPE_PHONE_NUMBER ||
+              pgType === BLOCK_TYPE_URL ||
+              pgType === BLOCK_TYPE_SELECT ||
+              pgType === BLOCK_TYPE_STATUS) {
+            
+            const pgValLower = pgVal.toString().toLowerCase();
+            const has = pgValLower.indexOf( siQuery ) >= 0;
+            if ((has && !siInclude)  || (!has && siInclude)) {
+              pgClears.push( false );
+            }
+          }
+          else if (pgType === BLOCK_TYPE_MULTI_SELECT) {
+            let hasMulti = false;
+            for (const msVal of pgVal) {
+              const msValLower = msVal.toString().toLowerCase();
+              if (msValLower.indexOf( siQuery ) >= 0 ) {
+                hasMulti = true;
+              }
+            }
+            if ((hasMulti && !siInclude)  || (!hasMulti && siInclude)) {
+              pgClears.push( false );
+            }
+          }
+        }
+
+        const pgClear = !pgClears.includes(false);
+        searchedPgsMap.set( pgId, pgClear );
+        return pgClear;
+      };
+
       const pgs = func.getPages( dbId );
-      const searchTermsLower = searchTerms.toLowerCase();
       const searchedPgs = new Map();
       const searchedResults = pgs.filter( pg => {
-        const allSearched = [];
-        const depth = 0;
-
-        // const searchCriteria = [
-        //   'question',
-        //   'color',
-        //   {
-        //     playlist: [
-              
-        //     ]
-        //   }
-        // ]
-
-        const found = searchPage(
-          pg, searchTermsLower, searchedPgs, allSearched, depth );
+        const searchTracker = {
+          allSearched: []
+        };
+        const simple = searchObj[SEARCH_TYPE] === SEARCH_TYPE_SIMPLE;
+        const found = simple ? 
+          simpleSearchPage( pg, searchObj, searchedPgs, searchTracker, 0 ) : 
+          complexSearchPage( pg, searchObj[SEARCH_INFO], searchedPgs, searchTracker );
         if (found) {
-          console.log( 'FOUND', pg, allSearched, depth );
+          console.log( 'FOUND', simple, pg, searchTracker );
         }
         return found;
       } );
 
-      rSearchedTerms.current[dbId] = searchTerms;
+      Object.freeze( searchedResults );
+      console.log( 'searchedResults', searchedResults.length );
+
       rSearchedResults.current[dbId] = searchedResults;
       setSearchResults( x => searchedResults );
-      setSearchTerms( x => searchTerms );
+      rSearchQueries.current[dbId] = searchObj;
+      setSearchQueries( x => rSearchQueries.current );
       return searchedResults;
     };
 
@@ -393,11 +479,7 @@ export const useNotionData = url => {
     };
 
     func.getSearchedPages = ( dbId ) => {
-      if (!(dbId in rSearchedTerms.current)) {
-        return func.getPages( dbId );
-      }
-      const searchTerms = rSearchedTerms.current[dbId];
-      if (searchTerms.trim() === '') {
+      if (!(dbId in rSearchQueries.current)) {
         return func.getPages( dbId );
       }
       return rSearchedResults.current[dbId];
