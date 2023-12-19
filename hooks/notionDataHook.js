@@ -370,6 +370,8 @@ export const useNotionData = url => {
       };
 
       const complexSearchPage = ( pg, searchInfo, searchedPgsMap, searchTracker ) => {
+        console.log( 'pg', pg );
+        console.log( 'search', searchInfo );
         const pgMetas = pg[DGMDCC_BLOCK_METADATA];
         const pgProps = pg[DGMDCC_BLOCK_PROPERTIES];
         const pgId = pgMetas[DGMDCC_BLOCK_ID][DGMDCC_BLOCK_VALUE];
@@ -378,8 +380,8 @@ export const useNotionData = url => {
           return searchedPgsMap.get( pgId );
         }
 
-        const pgClears = []
-
+        const pgClears = [];
+        const siRels = [];
         for (const si of searchInfo) {
           const siProp = si[SEARCH_PROPERTY];
           const pgData = siProp ? pgProps : pgMetas;
@@ -390,9 +392,20 @@ export const useNotionData = url => {
           }
 
           const siInclude = si[SEARCH_INCLUDE];
-          const siQuery = si[SEARCH_QUERY].toLowerCase();
           const pgVal = pgData[siField][DGMDCC_BLOCK_VALUE];
           const pgType = pgData[siField][DGMDCC_BLOCK_TYPE];
+
+
+          const siQuery = si[SEARCH_QUERY];
+          const nilSiQuery = isNil(siQuery);
+          const nilPgVal = isNil(pgVal) || (Array.isArray(pgVal) && pgVal.length === 0);
+          if (nilPgVal || nilSiQuery) {
+            if ((nilPgVal === nilSiQuery) !== siInclude) {
+              pgClears.push( false );
+            }
+            break;
+          }
+
           if (pgType === BLOCK_TYPE_TITLE ||
               pgType === BLOCK_TYPE_RICH_TEXT ||
               pgType === BLOCK_TYPE_NUMBER ||
@@ -402,22 +415,53 @@ export const useNotionData = url => {
               pgType === BLOCK_TYPE_SELECT ||
               pgType === BLOCK_TYPE_STATUS) {
             
+
+            const siQueryLower = siQuery.toLowerCase();
             const pgValLower = pgVal.toString().toLowerCase();
-            const has = pgValLower.indexOf( siQuery ) >= 0;
-            if ((has && !siInclude)  || (!has && siInclude)) {
+            const has = pgValLower.indexOf( siQueryLower ) >= 0;
+            // if ((has && !siInclude)  || (!has && siInclude)) {
+            if (has !== siInclude) {
               pgClears.push( false );
             }
           }
           else if (pgType === BLOCK_TYPE_MULTI_SELECT) {
+            const siQuery = si[SEARCH_QUERY];
+            const siQueryLower = siQuery.toLowerCase();
             let hasMulti = false;
             for (const msVal of pgVal) {
               const msValLower = msVal.toString().toLowerCase();
-              if (msValLower.indexOf( siQuery ) >= 0 ) {
+              if (msValLower.indexOf( siQueryLower ) >= 0 ) {
                 hasMulti = true;
               }
             }
-            if ((hasMulti && !siInclude)  || (!hasMulti && siInclude)) {
+            // if ((hasMulti && !siInclude)  || (!hasMulti && siInclude)) {
+            if (hasMulti !== siInclude) {
               pgClears.push( false );
+            }
+          }
+          else if (pgType === BLOCK_TYPE_RELATION) {
+            siRels.push( si );
+          }
+        }
+
+        if (pgClears.includes(false)) {
+          searchedPgsMap.set( pgId, false );
+          return false;
+        }
+
+        for (const si of siRels) {
+          const siField = si[SEARCH_FIELD];
+          const pgVal = pgProps[siField][DGMDCC_BLOCK_VALUE];
+          for (const relPgObj of pgVal) {
+            const relPgId = relPgObj['PAGE_ID'];
+            if (!searchTracker.allSearched.includes( relPgId )) {
+              const relDbId = relPgObj['DATABASE_ID'];
+              const relPg = func.getPage( relDbId, relPgId );
+              const s = complexSearchPage( relPg, si[SEARCH_QUERY], searchedPgsMap, searchTracker );
+              if (!s) {
+                pgClears.push( false );
+                break;
+              }
             }
           }
         }

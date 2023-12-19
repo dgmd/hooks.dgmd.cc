@@ -45,12 +45,11 @@ export default function Home() {
     nataJSON,
     crudding
   ] = useNotionData(
-    'http://localhost:3001/api/query?d=b7aa7231356a47d18ff271ffb641bc6c&b=false&r=true&c=d'
-    // http://localhost:3001/api/query?d=b7aa7231356a47d18ff271ffb641bc6c&b=false&r=true&c=d
+    'http://localhost:3000/api/query?d=b7aa7231356a47d18ff271ffb641bc6c&b=false&r=true&c=d'
+    // http://localhost:3000/api/query?d=b7aa7231356a47d18ff271ffb641bc6c&b=false&r=true&c=d
   );
 
   const [searchTerms, setSearchTerms] = useState( '' );
-
 
   const cbUpdatePage = useCallback( (dbId, pageId) => {
     if (!nata || !nata.isValid()) {
@@ -122,44 +121,66 @@ export default function Home() {
       >
         SORT
       </div>
-      <input
-        type="text"
+      <textarea
+        rows={10}
+        cols={30}
         onChange={ (e) => {
           const searchTerms = e.target.value;
-          setSearchTerms( searchTerms );
+          setSearchTerms( x => searchTerms );
 
-          // const searchObj = {
-          //   [SEARCH_TYPE]: SEARCH_TYPE_SIMPLE,
-          //   [SEARCH_INFO]: {
-          //     [SEARCH_QUERY]: searchTerms,
-          //     [SEARCH_DEPTH]: 1
-          //   }
-          // };
+          try {
+            const searchObj = JSON.parse( searchTerms );
+            console.log( 'searchObj', searchObj );
+            nata.searchPages( dbId, searchObj );
+          }
+          catch (e) {
+          }
 
-          const searchObj = {
-            [SEARCH_TYPE]: SEARCH_TYPE_COMPLEX,
-            [SEARCH_INFO]: [ {
-              [SEARCH_PROPERTY]: true,
-              [SEARCH_FIELD]: 'Question',
-              [SEARCH_QUERY]: 'before',
-              [SEARCH_INCLUDE]: false
-            },
+            // { 
+            // "SEARCH_TYPE": "SEARCH_TYPE_SIMPLE",
+            // "SEARCH_INFO": {
+            //   "SEARCH_QUERY": "girl",
+            //   "SEARCH_DEPTH": 1
+            //   }
+            // }
+
             // {
-            //   [SEARCH_PROPERTY]: true,
-            //   [SEARCH_FIELD]: 'Question',
-            //   [SEARCH_QUERY]: 'popular',
-            //   [SEARCH_INCLUDE]: true
-            // },
-            {
-              [SEARCH_PROPERTY]: true,
-              [SEARCH_FIELD]: 'Jaime CT',
-              [SEARCH_QUERY]: 'CC',
-              [SEARCH_INCLUDE]: true
-            } ]
-          };
+            //   "SEARCH_TYPE": "SEARCH_TYPE_COMPLEX",
+            //   "SEARCH_INFO": [ 
+            //   {
+            //   "SEARCH_PROPERTY": true,
+            //   "SEARCH_FIELD": "Question",
+            //   "SEARCH_INCLUDE": false,
+            //   "SEARCH_QUERY": "before"
+            //   },
+            //   {
+            //   "SEARCH_PROPERTY": true,
+            //   "SEARCH_FIELD": "Question",
+            //   "SEARCH_INCLUDE": true,
+            //   "SEARCH_QUERY": "popular",
+            //   },
+            //   {
+            //   "SEARCH_PROPERTY": true,
+            //   "SEARCH_FIELD": "Jaime CT",
+            //   "SEARCH_INCLUDE": false,
+            //   "SEARCH_QUERY": "CC",
+            //   },
+            //   {
+            //   "SEARCH_PROPERTY": true,
+            //   "SEARCH_FIELD": "Playlists",
+            //   "SEARCH_QUERY": [
+            //     {
+            //     "SEARCH_PROPERTY": true,
+            //     "SEARCH_FIELD": "Duration",
+            //     "SEARCH_QUERY": "20",
+            //     "SEARCH_INCLUDE": true
+            //     }
+            //   ]
+            //   }
+            //   ]
+            //   }
 
-          nata.searchPages( dbId, searchObj );
-        } }
+          } }
         value={ searchTerms }
       />
 
@@ -199,6 +220,7 @@ export default function Home() {
               {
                 getPageProperty( page, 'Question' )
               }
+
               {
                 nata.getRelationDataFromPgId( dbId, pageId, 'Playlists', 'Age' )?.join( ', ' )
               }
