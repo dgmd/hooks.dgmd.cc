@@ -288,9 +288,7 @@ export const useNotionData = url => {
         return 0;
       } );
 
-      console.log( 'fieldsLen', fieldsLen, 'pgs.Len', pgs.length );
       if (fieldsLen > 0 && pgs.length > 1) {
-        console.log( '_sortPages3' );
         setJsonObject( x => JSON.parse( JSON.stringify( rJsonObject.current ) ) );
       }
       //todo: freeze the object on the way out
@@ -309,7 +307,7 @@ export const useNotionData = url => {
         const searchInfo = searchObj[SEARCH_INFO];
         const query = searchInfo[SEARCH_QUERY].toLowerCase();
         const searchDepth = searchInfo[SEARCH_DEPTH];
-        if (depth > searchDepth) {
+        if (depth >= searchDepth) {
           return false;
         }
         const pgKeys = Object.keys( pgProps );
@@ -370,8 +368,6 @@ export const useNotionData = url => {
       };
 
       const complexSearchPage = ( pg, searchInfo, searchedPgsMap, searchTracker ) => {
-        console.log( 'pg', pg );
-        console.log( 'search', searchInfo );
         const pgMetas = pg[DGMDCC_BLOCK_METADATA];
         const pgProps = pg[DGMDCC_BLOCK_PROPERTIES];
         const pgId = pgMetas[DGMDCC_BLOCK_ID][DGMDCC_BLOCK_VALUE];
@@ -488,7 +484,6 @@ export const useNotionData = url => {
       } );
 
       Object.freeze( searchedResults );
-      console.log( 'searchedResults', searchedResults.length );
 
       rSearchedResults.current[dbId] = searchedResults;
       setSearchResults( x => searchedResults );
