@@ -50,16 +50,13 @@ export default function Home() {
   );
 
   const [searchTerms, setSearchTerms] = useState( '' );
+  const [searchIsJSON, setSearchIsJSON] = useState( false );
 
   const cbUpdatePage = useCallback( (dbId, pageId) => {
     if (!nata || !nata.isValid()) {
       return;
     }
     const updatePageObj = {
-      'Name': {
-        [DGMDCC_BLOCK_TYPE]: BLOCK_TYPE_TITLE,
-        [DGMDCC_BLOCK_VALUE]: 'New Title'
-      }
     };
     const updatePageMetaObj = {
     };
@@ -85,7 +82,7 @@ export default function Home() {
     if (!nata || !nata.isValid()) {
       return;
     }
-    nata.sortPages( dbId, ['Question'], [true] );
+    nata.sortPages( dbId, ['Age'], [true] );
     // nata.sortPages( nata.getDbIdByName('Question'), ['Age'], [false] );
   }, [
     nata
@@ -124,16 +121,31 @@ export default function Home() {
       <textarea
         rows={10}
         cols={30}
+        style={{
+          border: `1px solid ${ searchIsJSON ? 'green' : 'red' }`,
+          padding: '10px',
+          margin: '10px',
+          backgroundColor: '#fff',
+          color: '#000'
+        }}
         onChange={ (e) => {
           const searchTerms = e.target.value;
           setSearchTerms( x => searchTerms );
 
           try {
             const searchObj = JSON.parse( searchTerms );
-            console.log( 'searchObj', searchObj );
             nata.searchPages( dbId, searchObj );
+            setSearchIsJSON( x => true );
           }
           catch (e) {
+            nata.searchPages( dbId, { 
+              [SEARCH_TYPE]: SEARCH_TYPE_SIMPLE,
+              [SEARCH_INFO]: {
+                [SEARCH_QUERY]: searchTerms,
+                [SEARCH_DEPTH]: 1
+              }
+            });
+            setSearchIsJSON( x => false );
           }
 
             // { 
@@ -218,13 +230,13 @@ export default function Home() {
               </pre>
 
               {
-                getPageProperty( page, 'Question' )
+                getPageProperty( page, 'Age' ).join( '~`~' )
               }
 
-              {
+              {/* {
                 nata.getRelationDataFromPgId( dbId, pageId, 'Playlists', 'Age' )?.join( ', ' )
               }
-              
+               */}
 
               <div
                 style={{
