@@ -113,91 +113,27 @@ export const useNotionData = url => {
     const func = () => {};
 
     func.isLoaded = () => {
-      return !isNil( rJsonObject.current );
+      return isLoaded( rJsonObject.current );
     };
 
     func.isValid = () => {
-      if (!func.isLoaded()) {
-        return false;
-      }
-      return !( isNil( func.getPrimaryDbId() ) && isNil( func.getRelationDbIds() ) );
+      return isValid( rJsonObject.current );
     };
 
     func.getDb = dbId => {
-      if (!rJsonObject.current) {
-        return null;
-      }
-
-      const live = func.isLiveData();
-      if (live && rJsonObject.current[NOTION_RESULT_SUCCESS] === false) {
-        return null;
-      }
-
-      const job = live ? rJsonObject.current[NOTION_RESULT] : rJsonObject.current;
-
-      const primary = job[NOTION_RESULT_PRIMARY_DATABASE];
-      if (primary[NOTION_RESULT_DATABASE_ID] === dbId) {
-        return primary;
-      }
-      for (var i=0; i<job[NOTION_RESULT_RELATION_DATABASES].length; i++) {
-        const db = job[NOTION_RESULT_RELATION_DATABASES][i];
-        if (db[NOTION_RESULT_DATABASE_ID] === dbId) {
-          return db;
-        }
-      }
-      return null;
+      return getDb( rJsonObject.current, dbId );
     };
 
     func.getPrimaryDbId = () => {
-      if (!rJsonObject.current) {
-        return null;
-      }
-      try {
-        const live = func.isLiveData();
-        const job = live ? rJsonObject.current[NOTION_RESULT] : rJsonObject.current;
-        return job[NOTION_RESULT_PRIMARY_DATABASE][NOTION_RESULT_DATABASE_ID];
-      }
-      catch( err ) {
-        return null;
-      }
+      return getPrimaryDbId( rJsonObject.current );
     };
 
     func.getRelationDbIds = () => {
-      if (!rJsonObject.current) {
-        return null;
-      }
-      try {
-        const live = func.isLiveData();
-        const job = live ? rJsonObject.current[NOTION_RESULT] : rJsonObject.current;
-        return job[NOTION_RESULT_RELATION_DATABASES].map( db => db[NOTION_RESULT_DATABASE_ID] );
-      }
-      catch( err ) {
-        return null;
-      }
+      return getRelationDbIds( rJsonObject.current );
     };
 
     func.getDbIdByName = name => {
-      if (!rJsonObject.current) {
-        return null;
-      }
-      try {
-        const job = rJsonObject.current;
-        const primary = job[NOTION_RESULT_PRIMARY_DATABASE];
-        if (primary[NOTION_RESULT_DATABASE_TITLE] === name) {
-          return primary[NOTION_RESULT_DATABASE_ID];
-        }
-        const rels = job[NOTION_RESULT_RELATION_DATABASES];
-        for (var i=0; i<rels.length; i++) {
-          const db = rels[i];
-          if (db[NOTION_RESULT_DATABASE_TITLE] === name) {
-            return db[NOTION_RESULT_DATABASE_ID];
-          }
-        }
-        return null;
-      }
-      catch( err ) {
-        return null;
-      }
+      return getDbIdByName( rJsonObject.current, name );
     };
 
     func.setPageCursorNumbers = num => {
@@ -498,7 +434,7 @@ export const useNotionData = url => {
 
     func._searchPages = ( dbId ) => {
       const searchObj = rSearchQueries.current[dbId];
-      return func._searchPages( dbId, searchObj );
+      return func.searchPages( dbId, searchObj );
     };
 
     func.getPages = dbId => {
@@ -557,7 +493,7 @@ export const useNotionData = url => {
     };
 
     func.isLiveData = () => {
-      return isNil( rJsonObject.current[SNAPSHOT_TIMESTAMP] );
+      return isLiveData( rJsonObject.current );
     };
 
     func.deletePage = (dbId, pageId) => {
@@ -712,6 +648,7 @@ export const useNotionData = url => {
 
         const updateUrl = new URL( '/api/update', urlObj.origin );
         updateUrl.searchParams.append( URL_SEARCH_PARAM_ACTION, URL_SEARCH_VALUE_ACTION_UPDATE );
+        updateUrl.s
         updateUrl.searchParams.append( URL_SEARCH_PARAM_UPDATE_BLOCK_ID, rowIdData );
         updateUrl.searchParams.append( URL_SEARCH_PARAM_UPDATE_BLOCK, JSON.stringify(list) );
         updateUrl.searchParams.append( URL_SEARCH_PARAM_UPDATE_META, JSON.stringify(metaList) );
@@ -741,21 +678,7 @@ export const useNotionData = url => {
     };
 
     func.getPage = ( dbId, pageId ) => {
-      const db = func.getDb( dbId );
-      if (isNil(db)) {
-        return null;
-      }
-      const dbBlocks = db[NOTION_RESULT_BLOCKS];
-      const pageIdx = dbBlocks.findIndex( block => {
-        const blockIdMeta = block[DGMDCC_BLOCK_METADATA];
-        const blockIdObj = blockIdMeta[DGMDCC_BLOCK_ID];
-        const blockId = blockIdObj[DGMDCC_BLOCK_VALUE];
-        return blockId === pageId;
-      } );
-      if (pageIdx < 0) {
-        return null;
-      }
-      return dbBlocks[pageIdx];
+      return getPage( rJsonObject.current, dbId, pageId );
     };
 
     func.getRelationDataFromPgId = ( dbId, pageId, relationKey, relationField ) => {
@@ -785,16 +708,11 @@ export const useNotionData = url => {
     };
 
     func.hasNextCursorData = () => {
-      return !isNil( func.getNextCursorData() );
+      return hasNextCursorData( rJsonObject.current );
     };
 
     func.getNextCursorData = () => {
-      const db = func.getDb( func.getPrimaryDbId() );
-      if (isNil(db)) {
-        return null;
-      }
-      const cursorData = db[NOTION_RESULT_CURSOR_DATA];
-      return cursorData;
+      return getNextCursorData( rJsonObject.current );
     };
 
     func.hasAllCursors = () => {
@@ -840,6 +758,11 @@ export const useNotionData = url => {
       }
     };
 
+    if (func.isLoaded()) {
+      func._sortPages( func.getPrimaryDbId() );
+      func._searchPages( func.getPrimaryDbId() );
+    }
+
     return func;
   }, [
     jsonObject
@@ -854,10 +777,9 @@ export const useNotionData = url => {
         console.log( 'parsedJsonObject', parsedJsonObject );
 
         setJsonObject( x => parsedJsonObject );
-        mData._sortPages( mData.getPrimaryDbId() );
       }
       catch( err ) {
-        console.log( 'err', err );
+        console.log( 'error', err );
         //this is not sophisticated error handling
         //but forces a re-render and will move to 'invalid' state
         setJsonObject( x => {
@@ -877,108 +799,124 @@ export const useNotionData = url => {
 
   useEffect( () => {
 
-    const getPgs = obj => {
-      return obj[NOTION_RESULT][NOTION_RESULT_PRIMARY_DATABASE][NOTION_RESULT_BLOCKS];
-    };
-
     const update = newJsonObject => {
       rJsonObject.current = newJsonObject;
       setJsonObject( x => newJsonObject );
-      func._sortPages( func.getPrimaryDbId() );
-      func._searchPages( func.getPrimaryDbId() );
     };
 
     async function fetchData() {
       const newJsonObject = JSON.parse( JSON.stringify( rJsonObject.current ) );
 
       try {
-      const crudResponse = await fetch( crudURL );
-      const crudJson = await crudResponse.json( );
+        const crudResponse = await fetch( crudURL );
+        const crudJson = await crudResponse.json( );
+        console.log( 'crudJson', crudJson );
 
-      const params = new URLSearchParams(crudURL);
-      if (params.has( URL_SEARCH_PARAM_PAGE_CURSOR_TYPE_REQUEST )) {
-        const exsPrimaryPgs = getPgs( newJsonObject );
-        const newPrimaryPgs = getPgs( crudJson );
-        const merged = mergeLists( exsPrimaryPgs, newPrimaryPgs );
-        newJsonObject[NOTION_RESULT][NOTION_RESULT_PRIMARY_DATABASE][NOTION_RESULT_BLOCKS] = merged;
+        const params = new URLSearchParams(crudURL);
+        if (params.has( URL_SEARCH_PARAM_PAGE_CURSOR_TYPE_REQUEST )) {
+          const exsPrimaryPgs = getPrimaryPgs( newJsonObject );
+          const newPrimaryPgs = getPrimaryPgs( crudJson );
+          const merged = mergeLists( exsPrimaryPgs, newPrimaryPgs );
+          newJsonObject[NOTION_RESULT][NOTION_RESULT_PRIMARY_DATABASE][NOTION_RESULT_BLOCKS] = merged;
 
-        const relDbs = crudJson[NOTION_RESULT][NOTION_RESULT_RELATION_DATABASES];
-        for (const relDb of relDbs) {
-          const relDbId = relDb[NOTION_RESULT_DATABASE_ID];
-          const exDb = newJsonObject[NOTION_RESULT][NOTION_RESULT_RELATION_DATABASES].find( 
-            db => db[NOTION_RESULT_DATABASE_ID] === relDbId );
-          if (exDb) {
-            const exRelPgs = exDb[NOTION_RESULT_BLOCKS];
-            const newRelPgs = relDb[NOTION_RESULT_BLOCKS];
-            const merged = mergeLists( exRelPgs, newRelPgs );
-            exDb[NOTION_RESULT_BLOCKS] = merged;
+          const relDbs = crudJson[NOTION_RESULT][NOTION_RESULT_RELATION_DATABASES];
+          for (const relDb of relDbs) {
+            const relDbId = relDb[NOTION_RESULT_DATABASE_ID];
+            const exDb = newJsonObject[NOTION_RESULT][NOTION_RESULT_RELATION_DATABASES].find( 
+              db => db[NOTION_RESULT_DATABASE_ID] === relDbId );
+            if (exDb) {
+              const exRelPgs = exDb[NOTION_RESULT_BLOCKS];
+              const newRelPgs = relDb[NOTION_RESULT_BLOCKS];
+              const merged = mergeLists( exRelPgs, newRelPgs );
+              exDb[NOTION_RESULT_BLOCKS] = merged;
+            }
+            else {
+              newJsonObject[NOTION_RESULT][NOTION_RESULT_RELATION_DATABASES].push( relDb );
+            }
           }
-          else {
-            newJsonObject[NOTION_RESULT][NOTION_RESULT_RELATION_DATABASES].push( relDb );
-          }
+
+          const cursorData = 
+            crudJson[NOTION_RESULT][NOTION_RESULT_PRIMARY_DATABASE][NOTION_RESULT_CURSOR_DATA];
+          newJsonObject[NOTION_RESULT][NOTION_RESULT_PRIMARY_DATABASE][NOTION_RESULT_CURSOR_DATA] = cursorData;
+
+          update(newJsonObject);
         }
 
-        const cursorData = 
-          crudJson[NOTION_RESULT][NOTION_RESULT_PRIMARY_DATABASE][NOTION_RESULT_CURSOR_DATA];
-        newJsonObject[NOTION_RESULT][NOTION_RESULT_PRIMARY_DATABASE][NOTION_RESULT_CURSOR_DATA] = cursorData;
+        if (crudJson['result'] && crudJson['result']['delete']) {
 
-        update(newJsonObject);
-      }
-      if (params.get( URL_SEARCH_PARAM_ACTION ) === URL_SEARCH_VALUE_ACTION_DELETE) {
-        if (crudJson[CRUD_RESPONSE_RESULT][CRUD_RESPONSE_DELETE]) {
-          const delId = crudJson[CRUD_RESPONSE_RESULT][CRUD_RESPONSE_DELETE_ID];
-          let deleted = false;
+            const delId = crudJson['result']['deleteId'];
+            let deleted = false;
 
-          const allDbIds = [ mData.getPrimaryDbId(), ...mData.getRelationDbIds() ];
-          for (const dbId of allDbIds) {
-            const db = mData.getDb( dbId );
-            const dbBlocks = db[NOTION_RESULT_BLOCKS];
-            const idx = dbBlocks.findIndex( x => 
-              x[DGMDCC_BLOCK_METADATA][DGMDCC_BLOCK_ID][DGMDCC_BLOCK_VALUE] === delId );
-            if (idx >= 0) {
-              dbBlocks.splice( idx, 1 );
-              deleted = true;
-            }
-            for (const pg of dbBlocks) {
-              const pgProps = pg[DGMDCC_BLOCK_PROPERTIES];
-              for (const [key, value] of Object.entries(pgProps)) {
-                if (value[DGMDCC_BLOCK_TYPE] === BLOCK_TYPE_RELATION) {
-                  const relValue = value[DGMDCC_BLOCK_VALUE];
-                  const relIdx = relValue.findIndex( x => 
-                    x['PAGE_ID'] === delId );
-                  if (relIdx >= 0) {
-                    relValue.splice( relIdx, 1 );
-                    deleted = true;
+            const allDbIds = [ 
+              getPrimaryDbId(newJsonObject, true), 
+              ...getRelationDbIds(newJsonObject, true)
+            ];
+
+            for (const dbId of allDbIds) {
+              const db = getDb( newJsonObject, dbId, true );
+              const dbBlocks = db[NOTION_RESULT_BLOCKS];
+              const idx = dbBlocks.findIndex( x => 
+                x[DGMDCC_BLOCK_METADATA][DGMDCC_BLOCK_ID][DGMDCC_BLOCK_VALUE] === delId );
+              if (idx >= 0) {
+                dbBlocks.splice( idx, 1 );
+                deleted = true;
+              }
+              for (const pg of dbBlocks) {
+                const pgProps = pg[DGMDCC_BLOCK_PROPERTIES];
+                for (const [key, value] of Object.entries(pgProps)) {
+                  if (value[DGMDCC_BLOCK_TYPE] === BLOCK_TYPE_RELATION) {
+                    const relValue = value[DGMDCC_BLOCK_VALUE];
+                    const relIdx = relValue.findIndex( x => 
+                      x['PAGE_ID'] === delId );
+                    if (relIdx >= 0) {
+                      relValue.splice( relIdx, 1 );
+                      deleted = true;
+                    }
                   }
                 }
               }
             }
-          }
-          if (deleted) {
-            update();
+            if (deleted) {
+              update( newJsonObject );
+            }
+        }
+        if (crudJson['result'] && crudJson['result']['create']) {
+          const pg = crudJson['result']['page'];
+          const dbId = crudJson['result']['dbId'];
+          const db = getDb( newJsonObject, dbId, true );
+          const dbBlocks = db[NOTION_RESULT_BLOCKS];
+          dbBlocks.unshift( pg );
+          update( newJsonObject );
+        }
+        if (crudJson['result'] && crudJson['result']['update']) {
+          const pg = crudJson['result']['page'];
+          const dbId = crudJson['result']['dbId'];
+          const pgId = crudJson['result']['pgId'];
+          const db = getDb( newJsonObject, dbId );
+          const dbBlocks = db[NOTION_RESULT_BLOCKS];
+          const idx = dbBlocks.findIndex( x => 
+            x[DGMDCC_BLOCK_METADATA][DGMDCC_BLOCK_ID][DGMDCC_BLOCK_VALUE] === pgId );
+          if (idx >= 0) {
+            dbBlocks.splice( idx, 1, pg );
+            update( newJsonObject );
           }
         }
       }
-      if (params.get( URL_SEARCH_PARAM_ACTION ) === URL_SEARCH_VALUE_ACTION_CREATE) {
-        
-      }
 
-      }
       catch ( e ) {
         console.log( 'error processing crud', e );
       }
 
       setCrudURL( x => null );
       rCRUDDING.current = false;
-    }
+    };
 
-    if (!isNil( crudURL ) && rCRUDDING.current) {
-      fetchData( );
+    if (!isNil(crudURL)) {
+      fetchData();
     }
 
   }, [
-    crudURL,
-    mData
+    crudURL
   ] );
   
   return [
@@ -1110,6 +1048,10 @@ const mmBlocktoHeaderBlock = ( block ) => {
 
 export const getPageId = page => page[DGMDCC_BLOCK_METADATA][DGMDCC_BLOCK_ID][DGMDCC_BLOCK_VALUE];
 
+const getPrimaryPgs = obj => {
+  return obj[NOTION_RESULT][NOTION_RESULT_PRIMARY_DATABASE][NOTION_RESULT_BLOCKS];
+};
+
 export const getPageProperty = (page, propertyKey) => {
   if (isNil(page)) {
     return null;
@@ -1215,4 +1157,132 @@ const mergeLists = (existingList, incomingList) => {
     return acc;
   }, [])];
   return mergedList;
+};
+
+
+// # # #
+const isLoaded = (jsonObject) => {
+  return !isNil( jsonObject );
+};
+
+const isLiveData = (jsonObject) => {
+  return isNil( jsonObject[SNAPSHOT_TIMESTAMP] );
+};
+
+const isValid = (jsonObject) => {
+  if (!isLoaded(jsonObject)) {
+    return false;
+  }
+  const liveData = isLiveData(jsonObject);
+  return !( 
+    isNil( getPrimaryDbId(jsonObject, liveData) ) && 
+    isNil( getRelationDbIds(jsonObject, liveData) )
+  );
+};
+
+const getPrimaryDbId = (jsonObject) => {
+  if (isNil(jsonObject)) {
+    return null;
+  }
+  try {
+    const liveData = isLiveData(jsonObject);
+    const job = liveData ? jsonObject[NOTION_RESULT] : jsonObject;
+    return job[NOTION_RESULT_PRIMARY_DATABASE][NOTION_RESULT_DATABASE_ID];
+  }
+  catch( err ) {
+    return null;
+  }
+};
+
+const getRelationDbIds = (jsonObject) => {
+  if (isNil(jsonObject)) {
+    return null;
+  }
+  try {
+    const liveData = isLiveData(jsonObject);
+    const job = liveData ? jsonObject[NOTION_RESULT] : jsonObject;
+    return job[NOTION_RESULT_RELATION_DATABASES].map( db => db[NOTION_RESULT_DATABASE_ID] );
+  }
+  catch( err ) {
+    return null;
+  }
+};
+
+const getDb = (jsonObject, dbId) => {
+  if (isNil(jsonObject)) {
+    return null;
+  }
+  const liveData = isLiveData(jsonObject);
+  if (liveData && jsonObject[NOTION_RESULT_SUCCESS] === false) {
+    return null;
+  }
+
+  const job = liveData ? jsonObject[NOTION_RESULT] : jsonObject;
+
+  const primary = job[NOTION_RESULT_PRIMARY_DATABASE];
+  if (primary[NOTION_RESULT_DATABASE_ID] === dbId) {
+    return primary;
+  }
+  for (var i=0; i<job[NOTION_RESULT_RELATION_DATABASES].length; i++) {
+    const db = job[NOTION_RESULT_RELATION_DATABASES][i];
+    if (db[NOTION_RESULT_DATABASE_ID] === dbId) {
+      return db;
+    }
+  }
+  return null;
+};
+
+const getNextCursorData = (jsonObject) => {
+  const primaryDbId = getPrimaryDbId( jsonObject );
+  const db = getDb( jsonObject, primaryDbId );
+  if (isNil(db)) {
+    return null;
+  }
+  const cursorData = db[NOTION_RESULT_CURSOR_DATA];
+  return cursorData;
+};
+
+const hasNextCursorData = (jsonObject) => {
+  return !isNil( getNextCursorData(jsonObject) );
+};
+
+const getDbIdByName = (jsonObject, name) => {
+  if (isNil(jsonObject)) {
+    return null;
+  }
+  try {
+    const primary = jsonObject[NOTION_RESULT_PRIMARY_DATABASE];
+    if (primary[NOTION_RESULT_DATABASE_TITLE] === name) {
+      return primary[NOTION_RESULT_DATABASE_ID];
+    }
+    const rels = jsonObject[NOTION_RESULT_RELATION_DATABASES];
+    for (var i=0; i<rels.length; i++) {
+      const db = rels[i];
+      if (db[NOTION_RESULT_DATABASE_TITLE] === name) {
+        return db[NOTION_RESULT_DATABASE_ID];
+      }
+    }
+    return null;
+  }
+  catch( err ) {
+    return null;
+  }
+};
+
+const getPage = (jsonObject, dbId, pageId) => {
+  const db = getDb( jsonObject, dbId );
+  if (isNil(db)) {
+    return null;
+  }
+  const dbBlocks = db[NOTION_RESULT_BLOCKS];
+  const pageIdx = dbBlocks.findIndex( block => {
+    const blockIdMeta = block[DGMDCC_BLOCK_METADATA];
+    const blockIdObj = blockIdMeta[DGMDCC_BLOCK_ID];
+    const blockId = blockIdObj[DGMDCC_BLOCK_VALUE];
+    return blockId === pageId;
+  } );
+  if (pageIdx < 0) {
+    return null;
+  }
+  return dbBlocks[pageIdx];
 };
