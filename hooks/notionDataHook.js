@@ -467,6 +467,14 @@ export const useNotionData = url => {
         return pgClear;
       };
 
+      if (isNil(searchObj)) {
+        delete rSearchQueries.current[dbId];
+        rSearchedResults[dbId] = [];
+        setSearchQueries( x => null );  
+        setSearchResults( x => [] );
+        return [];
+      }
+
       const pgs = func.getPages( dbId );
       const searchedPgs = new Map();
       const searchedResults = pgs.filter( pg => {
@@ -477,19 +485,20 @@ export const useNotionData = url => {
         const found = simple ? 
           simpleSearchPage( pg, searchObj, searchedPgs, searchTracker, 0 ) : 
           complexSearchPage( pg, searchObj[SEARCH_INFO], searchedPgs, searchTracker );
-        if (found) {
-          console.log( 'FOUND', simple, pg, searchTracker );
-        }
         return found;
       } );
 
       Object.freeze( searchedResults );
-
       rSearchedResults.current[dbId] = searchedResults;
       setSearchResults( x => searchedResults );
       rSearchQueries.current[dbId] = searchObj;
       setSearchQueries( x => rSearchQueries.current );
       return searchedResults;
+    };
+
+    func._searchPages = ( dbId ) => {
+      const searchObj = rSearchQueries.current[dbId];
+      return func._searchPages( dbId, searchObj );
     };
 
     func.getPages = dbId => {
@@ -872,21 +881,31 @@ export const useNotionData = url => {
       return obj[NOTION_RESULT][NOTION_RESULT_PRIMARY_DATABASE][NOTION_RESULT_BLOCKS];
     };
 
+    const update = newJsonObject => {
+      rJsonObject.current = newJsonObject;
+      setJsonObject( x => newJsonObject );
+      func._sortPages( func.getPrimaryDbId() );
+      func._searchPages( func.getPrimaryDbId() );
+    };
+
     async function fetchData() {
+      const newJsonObject = JSON.parse( JSON.stringify( rJsonObject.current ) );
+
+      try {
       const crudResponse = await fetch( crudURL );
-      const parsedCrudJsonObject = await crudResponse.json( );
+      const crudJson = await crudResponse.json( );
 
       const params = new URLSearchParams(crudURL);
       if (params.has( URL_SEARCH_PARAM_PAGE_CURSOR_TYPE_REQUEST )) {
-        const exsPrimaryPgs = getPgs( rJsonObject.current );
-        const newPrimaryPgs = getPgs( parsedCrudJsonObject );
+        const exsPrimaryPgs = getPgs( newJsonObject );
+        const newPrimaryPgs = getPgs( crudJson );
         const merged = mergeLists( exsPrimaryPgs, newPrimaryPgs );
-        rJsonObject.current[NOTION_RESULT][NOTION_RESULT_PRIMARY_DATABASE][NOTION_RESULT_BLOCKS] = merged;
+        newJsonObject[NOTION_RESULT][NOTION_RESULT_PRIMARY_DATABASE][NOTION_RESULT_BLOCKS] = merged;
 
-        const relDbs = parsedCrudJsonObject[NOTION_RESULT][NOTION_RESULT_RELATION_DATABASES];
+        const relDbs = crudJson[NOTION_RESULT][NOTION_RESULT_RELATION_DATABASES];
         for (const relDb of relDbs) {
           const relDbId = relDb[NOTION_RESULT_DATABASE_ID];
-          const exDb = rJsonObject.current[NOTION_RESULT][NOTION_RESULT_RELATION_DATABASES].find( 
+          const exDb = newJsonObject[NOTION_RESULT][NOTION_RESULT_RELATION_DATABASES].find( 
             db => db[NOTION_RESULT_DATABASE_ID] === relDbId );
           if (exDb) {
             const exRelPgs = exDb[NOTION_RESULT_BLOCKS];
@@ -895,18 +914,58 @@ export const useNotionData = url => {
             exDb[NOTION_RESULT_BLOCKS] = merged;
           }
           else {
-            rJsonObject.current[NOTION_RESULT][NOTION_RESULT_RELATION_DATABASES].push( relDb );
+            newJsonObject[NOTION_RESULT][NOTION_RESULT_RELATION_DATABASES].push( relDb );
           }
         }
 
         const cursorData = 
-          parsedCrudJsonObject[NOTION_RESULT][NOTION_RESULT_PRIMARY_DATABASE][NOTION_RESULT_CURSOR_DATA];
-        rJsonObject.current[NOTION_RESULT][NOTION_RESULT_PRIMARY_DATABASE][NOTION_RESULT_CURSOR_DATA] = cursorData;
+          crudJson[NOTION_RESULT][NOTION_RESULT_PRIMARY_DATABASE][NOTION_RESULT_CURSOR_DATA];
+        newJsonObject[NOTION_RESULT][NOTION_RESULT_PRIMARY_DATABASE][NOTION_RESULT_CURSOR_DATA] = cursorData;
 
-        const newJsonObject = JSON.parse( JSON.stringify( rJsonObject.current ) );
-        rJsonObject.current = newJsonObject;
-        setJsonObject( x => newJsonObject );
-        func._sortPages( func.getPrimaryDbId() );
+        update(newJsonObject);
+      }
+      if (params.get( URL_SEARCH_PARAM_ACTION ) === URL_SEARCH_VALUE_ACTION_DELETE) {
+        if (crudJson[CRUD_RESPONSE_RESULT][CRUD_RESPONSE_DELETE]) {
+          const delId = crudJson[CRUD_RESPONSE_RESULT][CRUD_RESPONSE_DELETE_ID];
+          let deleted = false;
+
+          const allDbIds = [ mData.getPrimaryDbId(), ...mData.getRelationDbIds() ];
+          for (const dbId of allDbIds) {
+            const db = mData.getDb( dbId );
+            const dbBlocks = db[NOTION_RESULT_BLOCKS];
+            const idx = dbBlocks.findIndex( x => 
+              x[DGMDCC_BLOCK_METADATA][DGMDCC_BLOCK_ID][DGMDCC_BLOCK_VALUE] === delId );
+            if (idx >= 0) {
+              dbBlocks.splice( idx, 1 );
+              deleted = true;
+            }
+            for (const pg of dbBlocks) {
+              const pgProps = pg[DGMDCC_BLOCK_PROPERTIES];
+              for (const [key, value] of Object.entries(pgProps)) {
+                if (value[DGMDCC_BLOCK_TYPE] === BLOCK_TYPE_RELATION) {
+                  const relValue = value[DGMDCC_BLOCK_VALUE];
+                  const relIdx = relValue.findIndex( x => 
+                    x['PAGE_ID'] === delId );
+                  if (relIdx >= 0) {
+                    relValue.splice( relIdx, 1 );
+                    deleted = true;
+                  }
+                }
+              }
+            }
+          }
+          if (deleted) {
+            update();
+          }
+        }
+      }
+      if (params.get( URL_SEARCH_PARAM_ACTION ) === URL_SEARCH_VALUE_ACTION_CREATE) {
+        
+      }
+
+      }
+      catch ( e ) {
+        console.log( 'error processing crud', e );
       }
 
       setCrudURL( x => null );
@@ -916,8 +975,10 @@ export const useNotionData = url => {
     if (!isNil( crudURL ) && rCRUDDING.current) {
       fetchData( );
     }
+
   }, [
-    crudURL
+    crudURL,
+    mData
   ] );
   
   return [
