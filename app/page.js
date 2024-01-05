@@ -1,269 +1,209 @@
 "use client"
 
 import {
-  BLOCK_TYPE_DATE,
-  BLOCK_TYPE_EMOJI,
-  BLOCK_TYPE_FILE_EXTERNAL,
-  BLOCK_TYPE_RELATION,
-  BLOCK_TYPE_RICH_TEXT,
-  BLOCK_TYPE_TITLE,
-  BLOCK_TYPE_NUMBER,
-  DATE_PRETTY_SHORT_DATE,
-  DATE_PRETTY_SHORT_NUMERIC_DATE,
-  DGMDCC_BLOCK_DATE_END,
-  DGMDCC_BLOCK_DATE_START,
-  DGMDCC_BLOCK_PROPERTIES,
-  DGMDCC_BLOCK_TYPE,
-  DGMDCC_BLOCK_VALUE,
-  getPageId,
-  getPageProperty,
-  getRelationData,
-  prettyPrintNotionDate,
-  getRelationDataFromPgId,
-  useNotionData,
-  SEARCH_TYPE,
-  SEARCH_TYPE_COMPLEX,
-  SEARCH_TYPE_DEPTH,
-  SEARCH_TYPE_SIMPLE,
-  SEARCH_INFO,
-  SEARCH_DEPTH,
-  SEARCH_FIELD,
-  SEARCH_QUERY,
-  SEARCH_INCLUDE,
-  SEARCH_PROPERTY
-} from '../hooks/notionDataHook.js';
+  useNotionData
+} from './hook/notionDataHook.js';
 
 import {
-  useCallback,
+  getNotionDataPages,
+  getNotionDataPrimaryDbId,
+  isNotionDataLoaded,
+  isNotionDataValid,
+  isNotionDataLive,
+  getNotionDataAllDbIds,
+} from './hook/dataUtils.js';
+
+import {
+  getPageId
+} from './hook/pageUtils.js';
+
+import {
+  useLayoutEffect,
+  useRef,
   useState
 } from 'react';
 
 export default function Home() {
 
-  const [
-    nata,
-    nataJSON,
-    crudding
-  ] = useNotionData(
-    'http://localhost:3000/api/query?d=b7aa7231356a47d18ff271ffb641bc6c&b=false&r=true&c=d'
-    // http://localhost:3000/api/query?d=b7aa7231356a47d18ff271ffb641bc6c&b=false&r=true&c=d
-  );
+  const sortTextAreaRef = useRef( null );
+  const [sortTerms, setSortTerms] = useState( null );
 
-  const [searchTerms, setSearchTerms] = useState( '' );
-  const [searchIsJSON, setSearchIsJSON] = useState( false );
-
-  const cbUpdatePage = useCallback( (dbId, pageId) => {
-    if (!nata || !nata.isValid()) {
+  const {
+    setSearch,
+    setSort,
+    handleCreate,
+    handleUpdate,
+    handleDelete,
+    notionData,
+    filteredNotionData,
+    updating
+   } = useNotionData(
+    "https://proto-dgmd-cc.vercel.app/api/prototype?i=7c3c07bd-512d-42e9-8f59-158cd1a0da79" );
+    //"https://proto-dgmd-cc.vercel.app/api/query?d=ce748dc81b8444aba06b5cf5a0517fd7&b=false&r=true" );
+    //"https://proto-dgmd-cc.vercel.app/api/prototype?i=0265f0e9-7571-427a-a8ea-39cae000db74" );
+  
+  useLayoutEffect( () => {
+    if (!notionData) {
       return;
     }
-    const updatePageObj = {
-    };
-    const updatePageMetaObj = {
-    };
-    nata.updatePage( dbId, pageId, updatePageObj, updatePageMetaObj );
+
+    setSortTerms( x => {
+      if (x) {
+        return x;
+      }
+      const dbIds = getNotionDataAllDbIds( notionData );
+      const sortObj = {};
+      for (const dbId of dbIds) {
+        sortObj[dbId] = {
+          fields: [],
+          directions: []
+        };
+      }
+      return JSON.stringify( sortObj, null, 2 );
+    } );
   }, [
-    nata
+    notionData
   ] );
 
-  const cbCreatePage = useCallback( dbId => {
-    if (!nata || !nata.isValid()) {
-      return;
-    }
-    const createPageObj = {
-    };
-    const pageMetaObj = {
-    };
-    nata.createPage( dbId, createPageObj, pageMetaObj );
-  }, [
-    nata
-  ] );
+  // const [searchTerms, setSearchTerms] = useState( '' );
+  // const [searchIsJSON, setSearchIsJSON] = useState( false );
 
-  const cbSortPages = useCallback( dbId => {
-    if (!nata || !nata.isValid()) {
-      return;
-    }
-    nata.sortPages( dbId, ['Age'], [true] );
-    // nata.sortPages( nata.getDbIdByName('Question'), ['Age'], [false] );
-  }, [
-    nata
-  ] );
+  // const cbUpdatePage = useCallback( (dbId, pageId) => {
+  //   if (!nata || !nata.isValid()) {
+  //     return;
+  //   }
+  //   const updatePageObj = {
+  //   };
+  //   const updatePageMetaObj = {
+  //   };
+  //   nata.updatePage( dbId, pageId, updatePageObj, updatePageMetaObj );
+  // }, [
+  //   nata
+  // ] );
 
-  if (!nata.isLoaded()) {
+  // const cbCreatePage = useCallback( dbId => {
+  //   if (!nata || !nata.isValid()) {
+  //     return;
+  //   }
+  //   const createPageObj = {
+  //   };
+  //   const pageMetaObj = {
+  //   };
+  //   nata.createPage( dbId, createPageObj, pageMetaObj );
+  // }, [
+  //   nata
+  // ] );
+
+  // const cbSortPages = useCallback( dbId => {
+  //   if (!nata || !nata.isValid()) {
+  //     return;
+  //   }
+  //   nata.sortPages( dbId, ['Age'], [true] );
+  //   // nata.sortPages( nata.getDbIdByName('Question'), ['Age'], [false] );
+  // }, [
+  //   nata
+  // ] );
+
+  if (!isNotionDataLoaded(notionData)) {
     return (<div>loading...</div>);
   }
 
-  if (!nata.isValid()) {
+  if (!isNotionDataValid(notionData)) {
     return (<div>invalid data</div>);
   }
 
-  const dbId = nata.getPrimaryDbId( null );
+  const dbId = getNotionDataPrimaryDbId( notionData );
 
   return (
+
     <div>
-      <div>
-        <b>DATA STATUS</b>: { nata.isLiveData() ? 'LIVE DATA' : 'SNAPSHOT DATA' }
-      </div>
-      <div>
-        <b>CRUD STATUS</b>: { crudding ? 'ACTIVE' : 'INACTIVE' }
-      </div>
+
       <div
-        onClick={ () => cbCreatePage(dbId) }
-        style={ linkStyle }
+        style={sectionStyle}
       >
-        CREATE
+        <div
+          style={ headerStyle }
+        >
+          DATA STATUS
+        </div>
+        <div>
+          { isNotionDataLive(notionData) ? 'LIVE DATA' : 'SNAPSHOT DATA' }
+        </div>
       </div>
+
       <div
-        onClick={ () => cbSortPages(dbId) }
-        style={ linkStyle }
+        style={ sectionStyle}
       >
-        SORT
+        <div
+          style={ headerStyle }
+        >
+          UPDATING STATUS
+        </div>
+        <div>
+          { updating ? 'ACTIVE' : 'INACTIVE' }
+        </div>
       </div>
-      <textarea
-        rows={10}
-        cols={30}
-        style={{
-          border: `1px solid ${ searchIsJSON ? 'green' : 'red' }`,
-          padding: '10px',
-          margin: '10px',
-          backgroundColor: '#fff',
-          color: '#000'
-        }}
-        onChange={ (e) => {
-          const searchTerms = e.target.value;
-          setSearchTerms( x => searchTerms );
 
-          try {
-            const searchObj = JSON.parse( searchTerms );
-            nata.searchPages( dbId, searchObj );
-            setSearchIsJSON( x => true );
-          }
-          catch (e) {
-            nata.searchPages( dbId, { 
-              [SEARCH_TYPE]: SEARCH_TYPE_SIMPLE,
-              [SEARCH_INFO]: {
-                [SEARCH_QUERY]: searchTerms,
-                [SEARCH_DEPTH]: 1
-              }
-            });
-            setSearchIsJSON( x => false );
-          }
-
-            // { 
-            // "SEARCH_TYPE": "SEARCH_TYPE_SIMPLE",
-            // "SEARCH_INFO": {
-            //   "SEARCH_QUERY": "girl",
-            //   "SEARCH_DEPTH": 1
-            //   }
-            // }
-
-            // {
-            //   "SEARCH_TYPE": "SEARCH_TYPE_COMPLEX",
-            //   "SEARCH_INFO": [ 
-            //   {
-            //   "SEARCH_PROPERTY": true,
-            //   "SEARCH_FIELD": "Question",
-            //   "SEARCH_INCLUDE": false,
-            //   "SEARCH_QUERY": "before"
-            //   },
-            //   {
-            //   "SEARCH_PROPERTY": true,
-            //   "SEARCH_FIELD": "Question",
-            //   "SEARCH_INCLUDE": true,
-            //   "SEARCH_QUERY": "popular",
-            //   },
-            //   {
-            //   "SEARCH_PROPERTY": true,
-            //   "SEARCH_FIELD": "Jaime CT",
-            //   "SEARCH_INCLUDE": false,
-            //   "SEARCH_QUERY": "CC",
-            //   },
-            //   {
-            //   "SEARCH_PROPERTY": true,
-            //   "SEARCH_FIELD": "Playlists",
-            //   "SEARCH_QUERY": [
-            //     {
-            //     "SEARCH_PROPERTY": true,
-            //     "SEARCH_FIELD": "Duration",
-            //     "SEARCH_QUERY": "20",
-            //     "SEARCH_INCLUDE": true
-            //     }
-            //   ]
-            //   }
-            //   ]
-            //   }
-
+      <div
+        style={ sectionStyle}
+      >
+        <div
+          style={ headerStyle }
+        >
+          SORT
+        </div>
+        <textarea
+          rows={10}
+          cols={30}
+          style={{
+            border: `1px solid black`,
+            padding: '10px',
+            margin: '10px',
+            backgroundColor: '#fff',
+            color: '#000'
+          }}
+          ref={ sortTextAreaRef }
+          value={ sortTerms ? sortTerms : '' }
+          onChange={ e => setSortTerms( e.target.value ) }
+        />
+        <div
+          style={ linkStyle }
+          onClick={ () => {
+            try {
+              const sortText = sortTextAreaRef.current.value;
+              const sortTextObj = JSON.parse( sortText );
+              setSort( sortTextObj );
+            }
+            catch( err ) {
+              console.log( err );
+            }
           } }
-        value={ searchTerms }
-      />
+        >
+          DO THE SORTING
+        </div>
+      </div>
 
+      <hr/>
       {
-        nata.hasNextCursor( ) && (
-          <div
-            onClick={ () => nata.loadNextCursor( ) }
-            style={ linkStyle }
-          >
-            MORE
-          </div>
-        )
-      }
-
-      {
-        nata.getSearchedPages( dbId ).map( ( page, i ) => {
+        getNotionDataPages( filteredNotionData, dbId ).map( ( page, i ) => {
           const pageId = getPageId( page );
-
-          // const qs = nata.getRelationDataFromPg( page, 'Questions', 'Question' );
-
-
           return (
+          <div
+            key={ pageId }
+            style={{
+              border: '1px solid black',
+              margin: '10px',
+            }}
+          >
+            pageId: { pageId }
+            <br/>
             <div
-              style={{
-                border: '1px solid #ccc',
-                padding: '10px',
-                margin: '10px',
-                backgroundColor: '#fff',
-                color: '#000'
-              }}
-              key={ i }
+              style={ linkStyle }
+              onClick={ () => handleDelete( dbId, pageId ) }
             >
-              <pre>
-              { i }
-              </pre>
-
-              {
-                getPageProperty( page, 'Age' ).join( '~`~' )
-              }
-
-              {/* {
-                nata.getRelationDataFromPgId( dbId, pageId, 'Playlists', 'Age' )?.join( ', ' )
-              }
-               */}
-
-              <div
-                style={{
-                  paddingTop: '2px',
-                  display: 'flex',
-                  flexDirection: 'row',
-                  gap: '12px'
-                }}
-              >
-                <div
-                  onClick={ () => {
-                    nata.deletePage( dbId, getPageId(page) );
-                  } }
-                  style={linkStyle}
-                >
-                DELETE
-                </div>
-                <div
-                  onClick={ () => {
-                    cbUpdatePage( dbId, getPageId(page) );
-                  } }
-                  style={linkStyle}                
-                >
-                UPDATE
-                </div>
-              </div>
+              DELETE PAGE
             </div>
+          </div>
           );
         } )
       }
@@ -276,4 +216,15 @@ const linkStyle = {
   color: 'blue',
   textDecoration: 'underline',
   cursor: 'pointer'
+};
+
+const headerStyle = {
+  fontSize: '20px',
+  fontWeight: 'bold'
+};
+
+const sectionStyle = {
+  border: '1px dashed gray',
+  margin: '10px',
+  padding: '10px'
 };
