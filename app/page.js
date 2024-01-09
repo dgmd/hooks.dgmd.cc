@@ -6,11 +6,11 @@ import {
 } from './hook/notionDataHook.js';
 
 import {
+  getNotionDataPages,
   getNotionDataPrimaryDbId,
   isNotionDataLive,
   isNotionDataLoaded,
-  isNotionDataValid,
-  getNotionDataPages
+  isNotionDataValid
 } from './hook/dataUtils.js';
 
 import {

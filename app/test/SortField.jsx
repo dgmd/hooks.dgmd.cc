@@ -7,10 +7,10 @@ import {
 } from 'react';
 
 import {
+  getTextAreaStyle,
   headerStyle,
   linkStyle,
-  sectionStyle,
-  getTextAreaStyle
+  sectionStyle
 } from './Look.js';
 
 import {

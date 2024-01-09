@@ -1,14 +1,14 @@
 
 import {
-  useState,
+  useLayoutEffect,
   useRef,
-  useLayoutEffect
+  useState
 } from 'react';
 
 import {
+  getTextAreaStyle,
   linkStyle,
-  sectionStyle,
-  getTextAreaStyle
+  sectionStyle
 } from "./Look";
 
 import {

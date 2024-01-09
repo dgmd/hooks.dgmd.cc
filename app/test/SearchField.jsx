@@ -18,11 +18,11 @@ import {
 } from '../hook/dataUtils.js';
 
 import {
-  SEARCH_TYPE,
-  SEARCH_TYPE_SIMPLE,
+  SEARCH_DEPTH,
   SEARCH_INFO,
   SEARCH_QUERY,
-  SEARCH_DEPTH
+  SEARCH_TYPE,
+  SEARCH_TYPE_SIMPLE
 } from '../hook/constants.js';
 
 export const SearchField = ({notionData, onSearch}) => {

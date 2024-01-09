@@ -1,7 +1,7 @@
 
 import {
-  sectionStyle,
-  linkStyle
+  linkStyle,
+  sectionStyle
 } from './Look.js';
 
 export const DeleteField = ({onDelete, dbId, pageId}) => {
