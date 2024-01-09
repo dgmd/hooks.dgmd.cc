@@ -64,10 +64,10 @@ export const URL_SEARCH_VALUE_ACTION_CREATE = 'c';
 export const URL_SEARCH_PARAM_CREATE_BLOCK_ID = 'cbi';
 export const URL_SEARCH_PARAM_CREATE_CHILDREN = 'cc';
 export const URL_SEARCH_PARAM_CREATE_META = 'cm';
-const URL_SEARCH_VALUE_ACTION_UPDATE = 'u';
-const URL_SEARCH_PARAM_UPDATE_BLOCK_ID = 'ubi';
-const URL_SEARCH_PARAM_UPDATE_BLOCK = 'ub';
-const URL_SEARCH_PARAM_UPDATE_META = 'um';
+export const URL_SEARCH_VALUE_ACTION_UPDATE = 'u';
+export const URL_SEARCH_PARAM_UPDATE_BLOCK_ID = 'ubi';
+export const URL_SEARCH_PARAM_UPDATE_BLOCK = 'ub';
+export const URL_SEARCH_PARAM_UPDATE_META = 'um';
 
 const NOTION_HAS_MORE = 'has_more';
 const NOTION_NEXT_CURSOR = 'next_cursor';

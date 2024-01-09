@@ -1,7 +1,8 @@
 
 import {
   useState,
-  useRef
+  useRef,
+  useLayoutEffect
 } from 'react';
 
 import {
@@ -10,12 +11,29 @@ import {
   getTextAreaStyle
 } from "./Look";
 
+import {
+  DGMDCC_BLOCK_METADATA,
+  DGMDCC_BLOCK_PROPERTIES
+} from '../hook/constants.js';
+
 export const UpdateField = ({dbId, pageId, onUpdate}) => {
 
   const updateRef = useRef( null );
   const [sortTerms, setSortTerms] = useState( null );
-
   const [errorState, setErrorState] = useState( x => false );
+
+  useLayoutEffect( () => {
+    setSortTerms( x => {
+      if (x) {
+        return x;
+      }
+      return JSON.stringify( {
+        [DGMDCC_BLOCK_PROPERTIES]: {},
+        [DGMDCC_BLOCK_METADATA]: {}
+      }, null, 2 );
+    } );
+  }, [
+  ] );
 
   return (
     <div

@@ -6,7 +6,8 @@ export const linkStyle = {
 
 export const headerStyle = {
   fontSize: '20px',
-  fontWeight: 'bold'
+  fontWeight: 'bold',
+  cursor: 'pointer'
 };
 
 export const sectionStyle = {

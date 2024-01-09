@@ -43,6 +43,7 @@ export const getPageProperties = page => {
 export const getPageId = page => 
   getPageMetadata(page)[DGMDCC_BLOCK_ID][DGMDCC_BLOCK_VALUE];
 
+  //todo: getPropertyByPage & getPropertyByPageId & getPropertyKeysByPage & getPropertyKeysByPageId
 export const getPageProperty = (page, propertyKey) => {
   if (isNil(page)) {
     return null;

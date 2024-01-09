@@ -29,17 +29,15 @@ import {
   URL_SEARCH_PARAM_CREATE_CHILDREN,
   URL_SEARCH_PARAM_CREATE_META,
   URL_SEARCH_PARAM_DELETE_BLOCK_ID,
+  URL_SEARCH_PARAM_UPDATE_BLOCK,
+  URL_SEARCH_PARAM_UPDATE_BLOCK_ID,
+  URL_SEARCH_PARAM_UPDATE_META,
   URL_SEARCH_VALUE_ACTION_CREATE,
   URL_SEARCH_VALUE_ACTION_DELETE,
-  URL_SEARCH_PARAM_ACTION,
-  URL_SEARCH_PARAM_UPDATE_BLOCK_ID,
-  URL_SEARCH_PARAM_UPDATE_BLOCK,
-  URL_SEARCH_PARAM_UPDATE_META,
   URL_SEARCH_VALUE_ACTION_UPDATE
 } from './constants.js';
 
 import {
-  mergeMmPageBlockLists,
   mmMetaToNotionBlock,
   mmPropToNotionBlock,
   searchPages,
@@ -58,18 +56,18 @@ export const useNotionData = url => {
   const [notionData, setNotionData] = useState( x => null );
   const [filteredNotionData, setFilteredNotionData] = useState( x => null );
 
-  const updating = useRef( false );
+  const rUpdating = useRef( false );
 
   const [searchObj, setSearchObj] = useState( x => null );
   const rSearch = useRef( searchObj );
   const [sortObj, setSortObj] = useState( x => null );
   const rSort = useRef( sortObj );
 
-  const handleCreate = useCallback ( (page) => {
-    if (updating.current) {
+  const handleCreate = useCallback ( (newPages) => {
+    if (rUpdating.current) {
       return false;
     }
-    const dbIds = Object.keys( page );
+    const dbIds = Object.keys( newPages );
     if (dbIds.length === 0) {
       return false;
     }
@@ -78,19 +76,23 @@ export const useNotionData = url => {
     if (isNil(db)) {
       return false;
     }
-    const pgPropData = isNil( page[DGMDCC_BLOCK_PROPERTIES] ) ? {} : page[DGMDCC_BLOCK_PROPERTIES];
-    const pgMetaData = isNil( page[DGMDCC_BLOCK_METADATA] ) ? {} : page[DGMDCC_BLOCK_METADATA];
+
+    const pgPropData = newPages[DGMDCC_BLOCK_PROPERTIES];
+    const pgPropDatas = isObject(pgPropData) ? pgPropData : {};
+    const pgMetaData = newPages[DGMDCC_BLOCK_METADATA];
+    const pgMetaDatas = isObject( pgMetaData ) ? pgMetaData : {};
 
     if (isNotionDataLive(notionData)) {
+  
       const blockList = {};
-      for (const [key, userBlock] of Object.entries(pgPropData)) {
+      for (const [key, userBlock] of Object.entries(pgPropDatas)) {
         const nBlock = mmPropToNotionBlock( userBlock );
         if (!isNil(nBlock)) {
           blockList[key] = nBlock;
         }
       }
       const headerList = {};
-      for (const [key, userBlock] of Object.entries(pgMetaData)) {
+      for (const [key, userBlock] of Object.entries(pgMetaDatas)) {
         const nBlock = mmMetaToNotionBlock( userBlock );
         if (!isNil(nBlock)) {
           headerList[key] = nBlock;
@@ -102,31 +104,35 @@ export const useNotionData = url => {
       updateUrl.searchParams.append( URL_SEARCH_PARAM_CREATE_BLOCK_ID, dbId );
       updateUrl.searchParams.append( URL_SEARCH_PARAM_CREATE_CHILDREN, JSON.stringify(blockList) );
       updateUrl.searchParams.append( URL_SEARCH_PARAM_CREATE_META, JSON.stringify(headerList) );
-      updating.current = true;
+      rUpdating.current = true;
       setUrlUpdateObj( x => updateUrl.href );
     }
     else {
-      const uId = uniqueKey();
-      pgMetaData[DGMDCC_BLOCK_ID] = {
-        [DGMDCC_BLOCK_TYPE]: DGMDCC_BLOCK_ID,
-        [DGMDCC_BLOCK_VALUE]: uId
-      };
-      const page = {
-        [DGMDCC_BLOCK_PROPERTIES]: pgPropData,
-        [DGMDCC_BLOCK_METADATA]: pgMetaData
-      };
-      const cloneNotionData = structuredClone( notionData );
-      const dbBlocks = getNotionDataPages( cloneNotionData, dbId );
-      dbBlocks.unshift( page );
-      setNotionData( x => cloneNotionData );
+      setNotionData( d => {
+        const x = structuredClone( notionData );
+
+        const uId = uniqueKey();
+        pgMetaDatas[DGMDCC_BLOCK_ID] = {
+          [DGMDCC_BLOCK_TYPE]: DGMDCC_BLOCK_ID,
+          [DGMDCC_BLOCK_VALUE]: uId
+        };
+        const page = {
+          [DGMDCC_BLOCK_PROPERTIES]: pgPropDatas,
+          [DGMDCC_BLOCK_METADATA]: pgMetaDatas
+        };
+        const xPgs = getNotionDataPages( x, dbId );
+        xPgs.unshift( page );
+        return x;
+      } );
     }
     return true;
   }, [
-    notionData
+    notionData,
+    urlObj
   ] );
 
   const handleUpdate = useCallback ( (update) => {
-    if (updating.current) {
+    if (rUpdating.current) {
       return false;
     }
     const dbIds = Object.keys( update );
@@ -144,14 +150,35 @@ export const useNotionData = url => {
     }
     const pgId = pgIds[0];
     const pgUpdate = update[dbId][pgId];
+    const pgUpdateMeta = pgUpdate[DGMDCC_BLOCK_METADATA];
+    const pgUpdateMetas = isObject( pgUpdateMeta ) ? pgUpdateMeta : {};
+    const pgUpdateProp = pgUpdate[DGMDCC_BLOCK_PROPERTIES];
+    const pgUpdateProps = isObject( pgUpdateProp ) ? pgUpdateProp : {};
     
     if (isNotionDataLive(notionData)) {
+
+      const metaList = {};
+      for (const [key, userBlock] of Object.entries(pgUpdateMetas)) {
+        const mmBlock = mmBlocktoHeaderBlock( userBlock );
+        if (!isNil(mmBlock)) {
+          metaList[key] = mmBlock;
+        }
+      }
+      const propList = {};
+      for (const [key, userBlock] of Object.entries(pgUpdateProps)) {
+        const mmBlock = mmBlocktoPropBlock( userBlock );
+        if (!isNil(mmBlock)) {
+          propList[key] = mmBlock;
+        }
+      }
+
       const updateUrl = new URL( '/api/update', urlObj.origin );
       updateUrl.searchParams.append( URL_SEARCH_PARAM_ACTION, URL_SEARCH_VALUE_ACTION_UPDATE );
-      updateUrl.searchParams.append( URL_SEARCH_PARAM_UPDATE_BLOCK_ID, rowIdData );
-      updateUrl.searchParams.append( URL_SEARCH_PARAM_UPDATE_BLOCK, JSON.stringify(list) );
+      updateUrl.searchParams.append( URL_SEARCH_PARAM_UPDATE_BLOCK_ID, pgId );
+      updateUrl.searchParams.append( URL_SEARCH_PARAM_UPDATE_BLOCK, JSON.stringify(propList) );
       updateUrl.searchParams.append( URL_SEARCH_PARAM_UPDATE_META, JSON.stringify(metaList) );
       rObj[CRUD_RESULT_STATUS] = CRUD_RESULT_STATUS_PENDING;
+      rUpdating.current = true;
       setCrudURL( x => updateUrl.href );
     }
     else {
@@ -160,15 +187,11 @@ export const useNotionData = url => {
         const xpg = getNotionDataPage( x, dbId, pgId );
 
         const xpgMetas = xpg[DGMDCC_BLOCK_METADATA];
-        const pgUpdateMeta = pgUpdate[DGMDCC_BLOCK_METADATA];
-        const pgUpdateMetas = isObject(pgUpdateMeta) ? pgUpdateMeta : {};
         for (const [key, value] of Object.entries(pgUpdateMetas)) {
           xpgMetas[key] = value;
         }
 
         const xpgProps = xpg[DGMDCC_BLOCK_PROPERTIES];
-        const pgUpdateProp = pgUpdate[DGMDCC_BLOCK_PROPERTIES];
-        const pgUpdateProps = isObject(pgUpdateProp) ? pgUpdateProp : {};
         for (const [key, value] of Object.entries(pgUpdateProps)) {
           xpgProps[key] = value;
         }
@@ -184,7 +207,7 @@ export const useNotionData = url => {
   ] );
 
   const handleDelete = useCallback ( (dbId, pgId) => {
-    if (updating.current) {
+    if (rUpdating.current) {
       return false;
     }
     const pg = getNotionDataPage( notionData, dbId, pgId );
@@ -195,7 +218,7 @@ export const useNotionData = url => {
       const updateUrl = new URL( '/api/update', urlObj.origin );
       updateUrl.searchParams.append( URL_SEARCH_PARAM_ACTION, URL_SEARCH_VALUE_ACTION_DELETE );
       updateUrl.searchParams.append( URL_SEARCH_PARAM_DELETE_BLOCK_ID, pgId );
-      updating.current = true;
+      rUpdating.current = true;
       setUrlUpdateObj( x => updateUrl.href );
     }
     else {
@@ -211,17 +234,17 @@ export const useNotionData = url => {
   useEffect( () => {
 
     async function fetchData() {
-      updating.current = true;
+      rUpdating.current = true;
       try {
         const response = await fetch( url );
         const parsedJsonObject = await response.json( );
 
-        updating.current = false;
+        rUpdating.current = false;
         setNotionData( x => parsedJsonObject );
       }
       catch( err ) {
         console.log( err );
-        updating.current = false;
+        rUpdating.current = false;
         setNotionData( x => {
           return {};
         } );
@@ -315,17 +338,17 @@ export const useNotionData = url => {
           }
         }
 
-        updating.current = false;
+        rUpdating.current = false;
       }
       catch ( err ) {
         console.log( err );
-        updating.current = false;
+        rUpdating.current = false;
       }
 
       setUrlUpdateObj( x => null );
     };
 
-    if (!isNil(urlUpdateObj) && updating.current) {
+    if (!isNil(urlUpdateObj) && rUpdating.current) {
       fetchData();
     }
 
@@ -336,7 +359,7 @@ export const useNotionData = url => {
 
   //update search and sort
   useEffect( () => {
-    if (updating.current) {
+    if (rUpdating.current) {
       return;
     }
     setFilteredNotionData( x => searchAndSortData(
@@ -366,7 +389,7 @@ export const useNotionData = url => {
     handleDelete,
     notionData,
     filteredNotionData,
-    updating
+    updating: rUpdating.current
   };
 };
 

@@ -14,36 +14,32 @@ import {
 } from './hook/dataUtils.js';
 
 import {
-  getPageId
-} from './hook/pageUtils.js';
-
-import {
   useEffect
 } from 'react';
 
 import {
   SearchField
-} from './SearchField.jsx';
+} from './test/SearchField.jsx';
 
 import {
   SortField
-} from './SortField.jsx';
+} from './test/SortField.jsx';
 
 import {
   UpdateStatus
-} from './UpdateStatus.jsx';
-
-import {
-  DeleteField
-} from './DeleteField.jsx';
+} from './test/UpdateStatus.jsx';
 
 import {
   CreateField
-} from './CreateField.jsx';
+} from './test/CreateField.jsx';
 
 import {
-  UpdateField
-} from './UpdateField.jsx';
+  PageComponent
+} from './test/PageComponent.jsx';
+
+import {
+  getPageId
+} from './hook/pageUtils.js';
 
 export default function Home() {
   const {
@@ -109,39 +105,13 @@ export default function Home() {
         getNotionDataPages( filteredNotionData, dbId ).map( ( page, i ) => {
           const pageId = getPageId( page );
           return (
-          <div
-            key={ pageId }
-            style={{
-              border: '1px solid black',
-              margin: '10px',
-              display: 'flex',
-              flexDirection: 'column',
-            }}
-          >
-            <div>
-              <pre>
-              { JSON.stringify( page, null, 2 ) }
-              </pre>
-            </div>
-            <div
-              style={{
-                display: 'flex',
-                flexDirection: 'row',
-                alignItems: 'end',
-              }}
-            >
-              <DeleteField
-                onDelete={ handleDelete }
-                dbId={ dbId }
-                pageId={ pageId }
-              />
-              <UpdateField
-                onUpdate={ handleUpdate }
-                dbId={ dbId }
-                pageId={ pageId }
-              />
-            </div>
-          </div>
+            <PageComponent
+              key={ pageId }
+              dbId={ dbId }
+              page={ page }
+              handleDelete={ handleDelete }
+              handleUpdate={ handleUpdate }
+            />
           );
         } )
       }
