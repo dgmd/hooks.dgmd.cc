@@ -9,7 +9,7 @@ import {
     headerStyle,
     linkStyle,
     sectionStyle,
-    textAreaStyle
+    getTextAreaStyle
   } from './Look.js';
   
   import {
@@ -20,6 +20,8 @@ import {
   
     const createTextAreaRef = useRef( null );
     const [createTerms, setCreateTerms] = useState( null );
+
+    const [errorState, setErrorState] = useState( x => false );
   
     useLayoutEffect( () => {
       if (!notionData) {
@@ -54,10 +56,13 @@ import {
         <textarea
           rows={ 10 }
           cols={ 30 }
-          style={ textAreaStyle }
+          style={ getTextAreaStyle( errorState ) }
           ref={ createTextAreaRef }
           value={ createTerms ? createTerms : '' }
-          onChange={ e => setCreateTerms( e.target.value ) }
+          onChange={ e => {
+            setCreateTerms( e.target.value );
+            setErrorState( x => false );
+          } }
         />
         <div
             style={ linkStyle }
@@ -66,9 +71,11 @@ import {
                 const createText = createTextAreaRef.current.value;
                 const createTextObj = JSON.parse( createText );
                 onCreate( createTextObj );
+                setErrorState( x => false );
               }
               catch( err ) {
                 console.log( err );
+                setErrorState( x => true );
               }
             } }
         >

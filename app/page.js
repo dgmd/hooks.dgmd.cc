@@ -60,35 +60,6 @@ export default function Home() {
     //"https://proto-dgmd-cc.vercel.app/api/query?d=ce748dc81b8444aba06b5cf5a0517fd7&b=false&r=true" );
     //"https://proto-dgmd-cc.vercel.app/api/prototype?i=0265f0e9-7571-427a-a8ea-39cae000db74" );
 
-
-  // const cbUpdatePage = useCallback( (dbId, pageId) => {
-  //   if (!nata || !nata.isValid()) {
-  //     return;
-  //   }
-  //   const updatePageObj = {
-  //   };
-  //   const updatePageMetaObj = {
-  //   };
-  //   nata.updatePage( dbId, pageId, updatePageObj, updatePageMetaObj );
-  // }, [
-  //   nata
-  // ] );
-
-  // const cbCreatePage = useCallback( dbId => {
-  //   if (!nata || !nata.isValid()) {
-  //     return;
-  //   }
-  //   const createPageObj = {
-  //   };
-  //   const pageMetaObj = {
-  //   };
-  //   nata.createPage( dbId, createPageObj, pageMetaObj );
-  // }, [
-  //   nata
-  // ] );
-
-
-
   useEffect( () => {
   }, [
   ] );
@@ -147,7 +118,11 @@ export default function Home() {
               flexDirection: 'column',
             }}
           >
-            pageId: { pageId }
+            <div>
+              <pre>
+              { JSON.stringify( page, null, 2 ) }
+              </pre>
+            </div>
             <div
               style={{
                 display: 'flex',

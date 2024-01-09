@@ -335,7 +335,7 @@ export const searchPages = ( pgs, searchObj ) => {
 //
 //  BLOCK UPDATE CONVERTERS
 //
-const mmBlocktoNotionBlock = ( block ) => {
+export const mmPropToNotionBlock = ( block ) => {
     const type = block[DGMDCC_BLOCK_TYPE];
     const value = block[DGMDCC_BLOCK_VALUE];
   
@@ -434,7 +434,7 @@ const mmBlocktoNotionBlock = ( block ) => {
     return null;
 };
   
-const mmBlocktoHeaderBlock = ( block ) => {
+export const mmMetaToNotionBlock = ( block ) => {
     const type = block[DGMDCC_BLOCK_TYPE];
     const value = block[DGMDCC_BLOCK_VALUE];
     if (type === BLOCK_TYPE_EMOJI) {
@@ -452,25 +452,25 @@ const mmBlocktoHeaderBlock = ( block ) => {
     }
 };
   
-const mergeLists = (existingList, incomingList) => {
-    if (isNil(existingList)) {
-        return incomingList;
+export const mergeMmPageBlockLists = (existingList, incomingList) => {
+  if (isNil(existingList)) {
+    return incomingList;
+  }
+  if (isNil(incomingList)) {
+    return existingList;
+  }
+  const getId = obj => getPageMetadata(obj)[DGMDCC_BLOCK_ID][DGMDCC_BLOCK_VALUE];
+
+  const mergedList = [...existingList, ...incomingList.reduce((acc, obj) => {
+    const existingIndex = existingList.findIndex(
+      item => getId(item) === getId(obj) );
+    if (existingIndex !== -1) {
+      existingList[existingIndex] = obj; // Replace existing object
     }
-    if (isNil(incomingList)) {
-        return existingList;
+    else {
+      acc.push(obj); // Add new object
     }
-    const getId = obj => getPageMetadata(obj)[DGMDCC_BLOCK_ID][DGMDCC_BLOCK_VALUE];
-  
-    const mergedList = [...existingList, ...incomingList.reduce((acc, obj) => {
-      const existingIndex = existingList.findIndex(
-        item => getId(item) === getId(obj) );
-      if (existingIndex !== -1) {
-          existingList[existingIndex] = obj; // Replace existing object
-      }
-      else {
-          acc.push(obj); // Add new object
-      }
-      return acc;
-    }, [])];
-    return mergedList;
+    return acc;
+  }, [])];
+  return mergedList;
 };

@@ -6,39 +6,38 @@ import {
 } from 'react';
 
 import {
-  isEmpty,
-  isNil,
-  remove,
-  set,
-  update
+  isNil
 } from 'lodash-es';
 
 import {
+  getNotionDataDb,
   getNotionDataPage,
-  spliceNotionPage,
-  isNotionDataLive,
   getNotionDataPages,
-  getNotionDataDb
+  isNotionDataLive,
+  spliceNotionPage
 } from './dataUtils.js';
 
 import {
+  DGMDCC_BLOCK_ID,
+  DGMDCC_BLOCK_METADATA,
+  DGMDCC_BLOCK_PROPERTIES,
+  DGMDCC_BLOCK_TYPE,
+  DGMDCC_BLOCK_VALUE,
   URL_SEARCH_PARAM_ACTION,
-  URL_SEARCH_VALUE_ACTION_DELETE,
-  URL_SEARCH_PARAM_DELETE_BLOCK_ID,
-  URL_SEARCH_VALUE_ACTION_CREATE,
   URL_SEARCH_PARAM_CREATE_BLOCK_ID,
   URL_SEARCH_PARAM_CREATE_CHILDREN,
   URL_SEARCH_PARAM_CREATE_META,
-  DGMDCC_BLOCK_TYPE,
-  DGMDCC_BLOCK_VALUE,
-  DGMDCC_BLOCK_ID,
-  DGMDCC_BLOCK_METADATA,
-  DGMDCC_BLOCK_PROPERTIES
+  URL_SEARCH_PARAM_DELETE_BLOCK_ID,
+  URL_SEARCH_VALUE_ACTION_CREATE,
+  URL_SEARCH_VALUE_ACTION_DELETE
 } from './constants.js';
 
 import {
-  sortPages,
-  searchPages
+  mergeMmPageBlockLists,
+  mmMetaToNotionBlock,
+  mmPropToNotionBlock,
+  searchPages,
+  sortPages
 } from './pageUtils.js';
 
 import {
@@ -79,14 +78,14 @@ export const useNotionData = url => {
     if (isNotionDataLive(notionData)) {
       const blockList = {};
       for (const [key, userBlock] of Object.entries(pgPropData)) {
-        const nBlock = mmBlocktoNotionBlock( userBlock );
+        const nBlock = mmPropToNotionBlock( userBlock );
         if (!isNil(nBlock)) {
           blockList[key] = nBlock;
         }
       }
       const headerList = {};
       for (const [key, userBlock] of Object.entries(pgMetaData)) {
-        const nBlock = mmBlocktoHeaderBlock( userBlock );
+        const nBlock = mmMetaToNotionBlock( userBlock );
         if (!isNil(nBlock)) {
           headerList[key] = nBlock;
         }
@@ -139,9 +138,26 @@ export const useNotionData = url => {
       return false;
     }
     const pgId = pgIds[0];
-    const pg = getNotionDataPage( notionData, dbId, pgId );
     const pgUpdate = update[dbId][pgId];
-    console.log( 'pg', pg, 'pgUpdate', pgUpdate );
+    
+    if (isNotionDataLive(notionData)) {
+    }
+    else {
+      const updatePage = d => {
+        const x = structuredClone( d );
+        const xpg = getNotionDataPage( x, dbId, pgId );
+        const updProps = mergeMmPageBlockLists( xpg[DGMDCC_BLOCK_PROPERTIES], pgUpdate[DGMDCC_BLOCK_PROPERTIES] );
+        const updMeta = mergeMmPageBlockLists( xpg[DGMDCC_BLOCK_METADATA], pgUpdate[DGMDCC_BLOCK_METADATA] );
+        pg[DGMDCC_BLOCK_PROPERTIES] = updProps;
+        pg[DGMDCC_BLOCK_METADATA] = updMeta;
+      };
+      setNotionData( updatePage );
+      setFilteredNotionData( d => {
+        const x = updatePage( d );
+        return searchAndSortData( x );
+      } );
+    }
+
 
   }, [
     notionData

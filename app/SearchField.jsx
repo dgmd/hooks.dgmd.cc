@@ -6,10 +6,10 @@ import {
 } from 'react';
 
 import {
+  getTextAreaStyle,
   headerStyle,
   linkStyle,
-  sectionStyle,
-  textAreaStyle
+  sectionStyle
 } from './Look.js';
 
 import {
@@ -27,7 +27,8 @@ import {
 export const SearchField = ({notionData, onSearch}) => {
 
   const searchTextAreaRef = useRef( null );
-  const [searchTerms, setSearchTerms] = useState( null );
+  const [searchTerms, setSearchTerms] = useState( x => null );
+  const [errorState, setErrorState] = useState( x => false );
 
   useLayoutEffect( () => {
     if (!notionData) {
@@ -44,7 +45,7 @@ export const SearchField = ({notionData, onSearch}) => {
           [SEARCH_TYPE]: SEARCH_TYPE_SIMPLE,
           [SEARCH_INFO]: {
             [SEARCH_QUERY]: "",
-            [SEARCH_DEPTH]: 0
+            [SEARCH_DEPTH]: 1
           }
         };
       }
@@ -66,10 +67,13 @@ export const SearchField = ({notionData, onSearch}) => {
     <textarea
       rows={ 10 }
       cols={ 30 }
-      style={ textAreaStyle }
+      style={ getTextAreaStyle( errorState ) }
       ref={ searchTextAreaRef }
       value={ searchTerms ? searchTerms : '' }
-      onChange={ e => setSearchTerms( e.target.value ) }
+      onChange={ e => {
+        setErrorState( x => false );
+        setSearchTerms( e.target.value );
+      } }
     />
     <div
       style={ linkStyle }
@@ -78,9 +82,10 @@ export const SearchField = ({notionData, onSearch}) => {
           const searchText = searchTextAreaRef.current.value;
           const searchTextObj = JSON.parse( searchText );
           onSearch( searchTextObj );
+          setErrorState( x => false );
         }
         catch( err ) {
-          console.log( 'not valid json' );
+          setErrorState( x => true );
           console.log( err );
         }
       } }

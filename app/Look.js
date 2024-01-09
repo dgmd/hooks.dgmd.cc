@@ -15,10 +15,12 @@ export const sectionStyle = {
   padding: '10px'
 };
   
-export const textAreaStyle = {
-  border: `1px solid black`,
-  padding: '10px',
-  margin: '10px',
-  backgroundColor: '#fff',
-  color: '#000'
+export const getTextAreaStyle = error => {
+  return {
+    border: `1px solid black`,
+    padding: '10px',
+    margin: '10px',
+    backgroundColor: error ? '#FFCCCB' : '#fff',
+    color: '#000'
+  };
 };

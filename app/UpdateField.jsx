@@ -7,13 +7,15 @@ import {
 import {
   linkStyle,
   sectionStyle,
-  textAreaStyle
+  getTextAreaStyle
 } from "./Look";
 
 export const UpdateField = ({dbId, pageId, onUpdate}) => {
 
   const updateRef = useRef( null );
   const [sortTerms, setSortTerms] = useState( null );
+
+  const [errorState, setErrorState] = useState( x => false );
 
   return (
     <div
@@ -22,10 +24,13 @@ export const UpdateField = ({dbId, pageId, onUpdate}) => {
       <textarea
         rows={ 2 }
         cols={ 30 }
-        style={ textAreaStyle }
+        style={ getTextAreaStyle(errorState) }
         ref={ updateRef }
         value={ sortTerms ? sortTerms : '' }
-        onChange={ x => setSortTerms( x.target.value ) }
+        onChange={ x => {
+          setSortTerms( x.target.value );
+          setErrorState( x => false );
+        } }
       />
       <div
         style={ linkStyle }
@@ -38,9 +43,11 @@ export const UpdateField = ({dbId, pageId, onUpdate}) => {
               }
             };
             onUpdate( val );
+            setErrorState( x => false );
           }
           catch (e) {
             console.log( e );
+            setErrorState( x => true );
           }
         } }
       >

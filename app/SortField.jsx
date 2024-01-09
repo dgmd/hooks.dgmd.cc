@@ -9,7 +9,7 @@ import {
   headerStyle,
   linkStyle,
   sectionStyle,
-  textAreaStyle
+  getTextAreaStyle
 } from './Look.js';
 
 import {
@@ -20,6 +20,8 @@ export const SortField = ({notionData, onSort}) => {
 
   const sortTextAreaRef = useRef( null );
   const [sortTerms, setSortTerms] = useState( null );
+
+  const [errorState, setErrorState] = useState( x => false );
 
   useLayoutEffect( () => {
     if (!notionData) {
@@ -56,10 +58,13 @@ export const SortField = ({notionData, onSort}) => {
     <textarea
       rows={ 10 }
       cols={ 30 }
-      style={ textAreaStyle }
+      style={ getTextAreaStyle( errorState ) }
       ref={ sortTextAreaRef }
       value={ sortTerms ? sortTerms : '' }
-      onChange={ e => setSortTerms( e.target.value ) }
+      onChange={ e => {
+        setSortTerms( e.target.value );
+        setErrorState( x => false );
+      } }
     />
     <div
       style={ linkStyle }
@@ -68,9 +73,11 @@ export const SortField = ({notionData, onSort}) => {
           const sortText = sortTextAreaRef.current.value;
           const sortTextObj = JSON.parse( sortText );
           onSort( sortTextObj );
+          setErrorState( x => false );
         }
         catch( err ) {
           console.log( err );
+          setErrorState( x => true );
         }
       } }
     >
