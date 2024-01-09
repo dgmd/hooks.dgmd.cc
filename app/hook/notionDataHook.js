@@ -30,7 +30,12 @@ import {
   URL_SEARCH_PARAM_CREATE_META,
   URL_SEARCH_PARAM_DELETE_BLOCK_ID,
   URL_SEARCH_VALUE_ACTION_CREATE,
-  URL_SEARCH_VALUE_ACTION_DELETE
+  URL_SEARCH_VALUE_ACTION_DELETE,
+  URL_SEARCH_PARAM_ACTION,
+  URL_SEARCH_PARAM_UPDATE_BLOCK_ID,
+  URL_SEARCH_PARAM_UPDATE_BLOCK,
+  URL_SEARCH_PARAM_UPDATE_META,
+  URL_SEARCH_VALUE_ACTION_UPDATE
 } from './constants.js';
 
 import {
@@ -141,6 +146,13 @@ export const useNotionData = url => {
     const pgUpdate = update[dbId][pgId];
     
     if (isNotionDataLive(notionData)) {
+      const updateUrl = new URL( '/api/update', urlObj.origin );
+      updateUrl.searchParams.append( URL_SEARCH_PARAM_ACTION, URL_SEARCH_VALUE_ACTION_UPDATE );
+      updateUrl.searchParams.append( URL_SEARCH_PARAM_UPDATE_BLOCK_ID, rowIdData );
+      updateUrl.searchParams.append( URL_SEARCH_PARAM_UPDATE_BLOCK, JSON.stringify(list) );
+      updateUrl.searchParams.append( URL_SEARCH_PARAM_UPDATE_META, JSON.stringify(metaList) );
+      rObj[CRUD_RESULT_STATUS] = CRUD_RESULT_STATUS_PENDING;
+      setCrudURL( x => updateUrl.href );
     }
     else {
       const updatePage = d => {
@@ -167,7 +179,8 @@ export const useNotionData = url => {
 
     return true;
   }, [
-    notionData
+    notionData,
+    urlObj
   ] );
 
   const handleDelete = useCallback ( (dbId, pgId) => {
