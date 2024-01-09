@@ -1,16 +1,16 @@
 "use client"
 
+
 import {
   useNotionData
 } from './hook/notionDataHook.js';
 
 import {
-  getNotionDataPages,
   getNotionDataPrimaryDbId,
+  isNotionDataLive,
   isNotionDataLoaded,
   isNotionDataValid,
-  isNotionDataLive,
-  getNotionDataAllDbIds,
+  getNotionDataPages
 } from './hook/dataUtils.js';
 
 import {
@@ -18,16 +18,34 @@ import {
 } from './hook/pageUtils.js';
 
 import {
-  useLayoutEffect,
-  useRef,
-  useState
+  useEffect
 } from 'react';
 
+import {
+  SearchField
+} from './SearchField.jsx';
+
+import {
+  SortField
+} from './SortField.jsx';
+
+import {
+  UpdateStatus
+} from './UpdateStatus.jsx';
+
+import {
+  DeleteField
+} from './DeleteField.jsx';
+
+import {
+  CreateField
+} from './CreateField.jsx';
+
+import {
+  UpdateField
+} from './UpdateField.jsx';
+
 export default function Home() {
-
-  const sortTextAreaRef = useRef( null );
-  const [sortTerms, setSortTerms] = useState( null );
-
   const {
     setSearch,
     setSort,
@@ -41,32 +59,7 @@ export default function Home() {
     "https://proto-dgmd-cc.vercel.app/api/prototype?i=7c3c07bd-512d-42e9-8f59-158cd1a0da79" );
     //"https://proto-dgmd-cc.vercel.app/api/query?d=ce748dc81b8444aba06b5cf5a0517fd7&b=false&r=true" );
     //"https://proto-dgmd-cc.vercel.app/api/prototype?i=0265f0e9-7571-427a-a8ea-39cae000db74" );
-  
-  useLayoutEffect( () => {
-    if (!notionData) {
-      return;
-    }
 
-    setSortTerms( x => {
-      if (x) {
-        return x;
-      }
-      const dbIds = getNotionDataAllDbIds( notionData );
-      const sortObj = {};
-      for (const dbId of dbIds) {
-        sortObj[dbId] = {
-          fields: [],
-          directions: []
-        };
-      }
-      return JSON.stringify( sortObj, null, 2 );
-    } );
-  }, [
-    notionData
-  ] );
-
-  // const [searchTerms, setSearchTerms] = useState( '' );
-  // const [searchIsJSON, setSearchIsJSON] = useState( false );
 
   // const cbUpdatePage = useCallback( (dbId, pageId) => {
   //   if (!nata || !nata.isValid()) {
@@ -94,15 +87,11 @@ export default function Home() {
   //   nata
   // ] );
 
-  // const cbSortPages = useCallback( dbId => {
-  //   if (!nata || !nata.isValid()) {
-  //     return;
-  //   }
-  //   nata.sortPages( dbId, ['Age'], [true] );
-  //   // nata.sortPages( nata.getDbIdByName('Question'), ['Age'], [false] );
-  // }, [
-  //   nata
-  // ] );
+
+
+  useEffect( () => {
+  }, [
+  ] );
 
   if (!isNotionDataLoaded(notionData)) {
     return (<div>loading...</div>);
@@ -118,72 +107,33 @@ export default function Home() {
 
     <div>
 
-      <div
-        style={sectionStyle}
-      >
-        <div
-          style={ headerStyle }
-        >
-          DATA STATUS
-        </div>
-        <div>
-          { isNotionDataLive(notionData) ? 'LIVE DATA' : 'SNAPSHOT DATA' }
-        </div>
-      </div>
+      <UpdateStatus
+        title={ 'DATA STATUS' }
+        status={ isNotionDataLive(notionData) ? 'LIVE' : 'SNAPSHOT' }
+      />
 
-      <div
-        style={ sectionStyle}
-      >
-        <div
-          style={ headerStyle }
-        >
-          UPDATING STATUS
-        </div>
-        <div>
-          { updating ? 'ACTIVE' : 'INACTIVE' }
-        </div>
-      </div>
+      <UpdateStatus
+        title={ 'UPDATING STATUS' }
+        status={ updating ? 'ACTIVE' : 'INACTIVE' }
+      />
 
-      <div
-        style={ sectionStyle}
-      >
-        <div
-          style={ headerStyle }
-        >
-          SORT
-        </div>
-        <textarea
-          rows={10}
-          cols={30}
-          style={{
-            border: `1px solid black`,
-            padding: '10px',
-            margin: '10px',
-            backgroundColor: '#fff',
-            color: '#000'
-          }}
-          ref={ sortTextAreaRef }
-          value={ sortTerms ? sortTerms : '' }
-          onChange={ e => setSortTerms( e.target.value ) }
-        />
-        <div
-          style={ linkStyle }
-          onClick={ () => {
-            try {
-              const sortText = sortTextAreaRef.current.value;
-              const sortTextObj = JSON.parse( sortText );
-              setSort( sortTextObj );
-            }
-            catch( err ) {
-              console.log( err );
-            }
-          } }
-        >
-          DO THE SORTING
-        </div>
-      </div>
+      <CreateField
+        notionData={ notionData }
+        onCreate={ handleCreate }
+      />
+
+      <SortField
+        notionData={ notionData }
+        onSort={ setSort }
+      />
+
+      <SearchField
+        notionData={ notionData }
+        onSearch={ setSearch }
+      /> 
 
       <hr/>
+
       {
         getNotionDataPages( filteredNotionData, dbId ).map( ( page, i ) => {
           const pageId = getPageId( page );
@@ -193,15 +143,28 @@ export default function Home() {
             style={{
               border: '1px solid black',
               margin: '10px',
+              display: 'flex',
+              flexDirection: 'column',
             }}
           >
             pageId: { pageId }
-            <br/>
             <div
-              style={ linkStyle }
-              onClick={ () => handleDelete( dbId, pageId ) }
+              style={{
+                display: 'flex',
+                flexDirection: 'row',
+                alignItems: 'end',
+              }}
             >
-              DELETE PAGE
+              <DeleteField
+                onDelete={ handleDelete }
+                dbId={ dbId }
+                pageId={ pageId }
+              />
+              <UpdateField
+                onUpdate={ handleUpdate }
+                dbId={ dbId }
+                pageId={ pageId }
+              />
             </div>
           </div>
           );
@@ -212,19 +175,3 @@ export default function Home() {
   );
 };
 
-const linkStyle = {
-  color: 'blue',
-  textDecoration: 'underline',
-  cursor: 'pointer'
-};
-
-const headerStyle = {
-  fontSize: '20px',
-  fontWeight: 'bold'
-};
-
-const sectionStyle = {
-  border: '1px dashed gray',
-  margin: '10px',
-  padding: '10px'
-};

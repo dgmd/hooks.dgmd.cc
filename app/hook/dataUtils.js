@@ -56,18 +56,17 @@ export const getNotionDataPrimaryDbId = (jsonObject) => {
 };
   
 const getNotionDataRelationDbIds = (jsonObject) => {
-  if (isNil(jsonObject)) {
-    return null;
+  if (!isNil(jsonObject)) {
+    try {
+      const liveData = isNotionDataLive(jsonObject);
+      const job = liveData ? jsonObject[NOTION_RESULT] : jsonObject;
+      return job[NOTION_RESULT_RELATION_DATABASES].map( db => db[NOTION_RESULT_DATABASE_ID] );
+    }
+    catch( err ) {
+      console.log( err );
+    }
   }
-  try {
-    const liveData = isNotionDataLive(jsonObject);
-    const job = liveData ? jsonObject[NOTION_RESULT] : jsonObject;
-    return job[NOTION_RESULT_RELATION_DATABASES].map( db => db[NOTION_RESULT_DATABASE_ID] );
-  }
-  catch( err ) {
-    console.log( err );
-    return null;
-  }
+  return [];
 };
   
 export const getNotionDataDb = (jsonObject, dbId) => {
@@ -159,7 +158,7 @@ export const getNotionDataPages = (jsonObject, dbId) => {
     return dbBlocks;
   }
   catch( err ) {
-    console.log( 'err', err );
+    console.log( err );
     return [];
   }
 };
