@@ -182,12 +182,12 @@ export const getNotionDataAllDbIds = (notionData) => {
 
 
 export const spliceNotionPage = (notionData, pgId) => {
-  const cloneData = Object.assign( {}, notionData );
+  const x = structuredClone( notionData );
 
-  const allDbIds = getNotionDataAllDbIds( notionData );
+  const allDbIds = getNotionDataAllDbIds( x );
 
   for (const dbId of allDbIds) {
-    const db = getNotionDataDb( notionData, dbId, true );
+    const db = getNotionDataDb( x, dbId, true );
     const dbPgs = db[NOTION_RESULT_BLOCKS];
     const idx = dbPgs.findIndex( x => 
       x[DGMDCC_BLOCK_METADATA][DGMDCC_BLOCK_ID][DGMDCC_BLOCK_VALUE] === pgId );
@@ -208,5 +208,5 @@ export const spliceNotionPage = (notionData, pgId) => {
       }
     }
   }
-  return cloneData;
+  return x;
 }

@@ -6,7 +6,8 @@ import {
 } from 'react';
 
 import {
-  isNil
+  isNil,
+  isObject
 } from 'lodash-es';
 
 import {
@@ -113,9 +114,8 @@ export const useNotionData = url => {
       const dbBlocks = getNotionDataPages( cloneNotionData, dbId );
       dbBlocks.unshift( page );
       setNotionData( x => cloneNotionData );
-      setFilteredNotionData( x => searchAndSortData( cloneNotionData ) );
     }
-    
+    return true;
   }, [
     notionData
   ] );
@@ -146,19 +146,26 @@ export const useNotionData = url => {
       const updatePage = d => {
         const x = structuredClone( d );
         const xpg = getNotionDataPage( x, dbId, pgId );
-        const updProps = mergeMmPageBlockLists( xpg[DGMDCC_BLOCK_PROPERTIES], pgUpdate[DGMDCC_BLOCK_PROPERTIES] );
-        const updMeta = mergeMmPageBlockLists( xpg[DGMDCC_BLOCK_METADATA], pgUpdate[DGMDCC_BLOCK_METADATA] );
-        pg[DGMDCC_BLOCK_PROPERTIES] = updProps;
-        pg[DGMDCC_BLOCK_METADATA] = updMeta;
+
+        const xpgMetas = xpg[DGMDCC_BLOCK_METADATA];
+        const pgUpdateMeta = pgUpdate[DGMDCC_BLOCK_METADATA];
+        const pgUpdateMetas = isObject(pgUpdateMeta) ? pgUpdateMeta : {};
+        for (const [key, value] of Object.entries(pgUpdateMetas)) {
+          xpgMetas[key] = value;
+        }
+
+        const xpgProps = xpg[DGMDCC_BLOCK_PROPERTIES];
+        const pgUpdateProp = pgUpdate[DGMDCC_BLOCK_PROPERTIES];
+        const pgUpdateProps = isObject(pgUpdateProp) ? pgUpdateProp : {};
+        for (const [key, value] of Object.entries(pgUpdateProps)) {
+          xpgProps[key] = value;
+        }
+        return x;
       };
       setNotionData( updatePage );
-      setFilteredNotionData( d => {
-        const x = updatePage( d );
-        return searchAndSortData( x );
-      } );
     }
 
-
+    return true;
   }, [
     notionData
   ] );
@@ -180,7 +187,6 @@ export const useNotionData = url => {
     }
     else {
       setNotionData( x => spliceNotionPage( x, pgId ) );
-      setFilteredNotionData( x => spliceNotionPage( x, pgId ) );
     }
     return true;
   }, [
@@ -188,7 +194,7 @@ export const useNotionData = url => {
     urlObj
   ] );
 
-
+  //load notion data
   useEffect( () => {
 
     async function fetchData() {
@@ -199,15 +205,11 @@ export const useNotionData = url => {
 
         updating.current = false;
         setNotionData( x => parsedJsonObject );
-        setFilteredNotionData( x => parsedJsonObject );
       }
       catch( err ) {
         console.log( err );
         updating.current = false;
         setNotionData( x => {
-          return {};
-        } );
-        setFilteredNotionData( x => {
           return {};
         } );
       }
@@ -222,7 +224,7 @@ export const useNotionData = url => {
     url
   ] );
 
-  //update search/sort data here
+  //update live crud response
   useEffect( () => {
 
     async function fetchData() {
@@ -266,7 +268,6 @@ export const useNotionData = url => {
           if (result['delete']) {
               const delId = result['deleteId'];
               setNotionData( x => spliceNotionPage( x, delId ) );
-              setFilteredNotionData( x => spliceNotionPage( x, delId ) );
           }
           if (result['create']) {
             const pg = result['page'];
@@ -280,10 +281,6 @@ export const useNotionData = url => {
             };
 
             setNotionData( updateNotionData );
-            setFilteredNotionData( x => {
-              const y = updateNotionData( x );
-              return searchAndSortData( y, rSearch.current, rSort.current );
-            } );
           }
           if (result['update']) {
             const pg = result['page'];
@@ -302,17 +299,11 @@ export const useNotionData = url => {
             };
 
             setNotionData( updateNotionData );
-
-            setFilteredNotionData( x => {
-              const y = updateNotionData( x );
-              return searchAndSortData( y, rSearch.current, rSort.current );
-            } );
           }
         }
 
         updating.current = false;
       }
-
       catch ( err ) {
         console.log( err );
         updating.current = false;
@@ -330,6 +321,7 @@ export const useNotionData = url => {
     urlUpdateObj
   ] );
 
+  //update search and sort
   useEffect( () => {
     if (updating.current) {
       return;
@@ -339,7 +331,8 @@ export const useNotionData = url => {
     ) );
   }, [
     searchObj,
-    sortObj
+    sortObj,
+    notionData
   ] );
 
   const setSearch = useCallback( searchObj => {
