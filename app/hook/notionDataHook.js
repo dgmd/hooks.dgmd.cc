@@ -159,14 +159,14 @@ export const useNotionData = url => {
 
       const metaList = {};
       for (const [key, userBlock] of Object.entries(pgUpdateMetas)) {
-        const mmBlock = mmBlocktoHeaderBlock( userBlock );
+        const mmBlock = mmMetaToNotionBlock( userBlock );
         if (!isNil(mmBlock)) {
           metaList[key] = mmBlock;
         }
       }
       const propList = {};
       for (const [key, userBlock] of Object.entries(pgUpdateProps)) {
-        const mmBlock = mmBlocktoPropBlock( userBlock );
+        const mmBlock = mmPropToNotionBlock( userBlock );
         if (!isNil(mmBlock)) {
           propList[key] = mmBlock;
         }
@@ -177,9 +177,8 @@ export const useNotionData = url => {
       updateUrl.searchParams.append( URL_SEARCH_PARAM_UPDATE_BLOCK_ID, pgId );
       updateUrl.searchParams.append( URL_SEARCH_PARAM_UPDATE_BLOCK, JSON.stringify(propList) );
       updateUrl.searchParams.append( URL_SEARCH_PARAM_UPDATE_META, JSON.stringify(metaList) );
-      rObj[CRUD_RESULT_STATUS] = CRUD_RESULT_STATUS_PENDING;
       rUpdating.current = true;
-      setCrudURL( x => updateUrl.href );
+      setUrlUpdateObj( x => updateUrl.href );
     }
     else {
       const updatePage = d => {
@@ -269,6 +268,7 @@ export const useNotionData = url => {
         const crudResponse = await fetch( urlUpdateObj );
         const crudJson = await crudResponse.json( );
 
+        
         // const params = new URLSearchParams( updateUrl );
         // if (params.has( URL_SEARCH_PARAM_PAGE_CURSOR_TYPE_REQUEST )) {
         //   const exsPrimaryPgs = getPrimaryPgs( newJsonObject );
@@ -301,6 +301,7 @@ export const useNotionData = url => {
 
         if (crudJson['result']) {
           const result = crudJson['result'];
+          console.log( 'result', result );
           if (result['delete']) {
               const delId = result['deleteId'];
               setNotionData( x => spliceNotionPage( x, delId ) );
@@ -319,6 +320,7 @@ export const useNotionData = url => {
             setNotionData( updateNotionData );
           }
           if (result['update']) {
+            console.log( 'result', result );
             const pg = result['page'];
             const dbId = result['dbId'];
             const pgId = result['pgId'];
