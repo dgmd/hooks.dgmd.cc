@@ -55,7 +55,7 @@ export const getNotionDataPrimaryDbId = (jsonObject) => {
   }
 };
   
-const getNotionDataRelationDbIds = (jsonObject) => {
+export const getNotionDataRelationDbIds = (jsonObject) => {
   if (!isNil(jsonObject)) {
     try {
       const liveData = isNotionDataLive(jsonObject);

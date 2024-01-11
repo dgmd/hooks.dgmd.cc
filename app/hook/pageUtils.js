@@ -38,6 +38,7 @@ export const getPageMetadata = page => {
   return page[DGMDCC_BLOCK_METADATA];
 };
 
+//todo - return keys, or keys & values
 export const getPageProperties = page => {
   return page[DGMDCC_BLOCK_PROPERTIES];
 };
@@ -45,7 +46,7 @@ export const getPageProperties = page => {
 export const getPageId = page => 
   getPageMetadata(page)[DGMDCC_BLOCK_ID][DGMDCC_BLOCK_VALUE];
 
-  //todo: getPropertyByPage & getPropertyByPageId & getPropertyKeysByPage & getPropertyKeysByPageId
+//todo: getPropertyByPage & getPropertyByPageId & getPropertyKeysByPage & getPropertyKeysByPageId
 export const getPageProperty = (page, propertyKey) => {
   if (isNil(page)) {
     return null;
@@ -338,123 +339,126 @@ export const searchPages = ( pgs, searchObj ) => {
 //
 //  BLOCK UPDATE CONVERTERS
 //
+//  todo --> move this to the server
+//
 export const mmPropToNotionBlock = ( block ) => {
-    const type = block[DGMDCC_BLOCK_TYPE];
-    const value = block[DGMDCC_BLOCK_VALUE];
-  
-    if ([BLOCK_TYPE_CREATED_TIME, BLOCK_TYPE_LAST_EDITED_TIME].includes( type )) {
-      return null;
-    }
-  
-    if (BLOCK_TYPE_DATE === type) {
-      const startDateValue = new Date( value[DGMDCC_BLOCK_DATE_START] );
-      if (isFinite(startDateValue)) {
-        const dateObj = {
-          [DGMDCC_BLOCK_DATE_START]: startDateValue.toISOString()
-        };
-        const endDateValue = new Date( value[DGMDCC_BLOCK_DATE_END] );
-        if (isFinite(endDateValue)) {
-          dateObj[DGMDCC_BLOCK_DATE_END] = endDateValue.toISOString();
-        }
-        return {
-          [type]: dateObj
-        };
-      }
-    }
-  
-    if ([BLOCK_TYPE_TITLE, BLOCK_TYPE_RICH_TEXT].includes( type )) {
-      const stringValue = String( value );
-      return {
-        [type]: [ {
-          "text": {
-            "content": stringValue
-          }
-        } ]
-      };
-    }
-  
-    if ([BLOCK_TYPE_PHONE_NUMBER, BLOCK_TYPE_URL, BLOCK_TYPE_EMAIL].includes( type )) {
-      const stringValue = String( value );
-      return {
-        [type]: stringValue
-      };
-    }
-  
-    if (type === BLOCK_TYPE_SELECT || type === BLOCK_TYPE_STATUS) {
-      const stringValue = String( value );
-      return {
-        [type]: {
-          "name": stringValue
-        }
-      };
-    }
-    if (type === BLOCK_TYPE_NUMBER) {
-      const numValue = Number( value );
-      if (isFinite(numValue)) {
-        return {
-          [type]: numValue
-        };
-      }
-    }
-    if (type === BLOCK_TYPE_MULTI_SELECT) {
-      if (Array.isArray(value)) {
-        const selects = value.map( v => {
-          return {
-            "name": String(v)
-          };
-        } );
-  
-        return {
-          [type]: selects
-        };
-      }
-    }
-    if (type === BLOCK_TYPE_CHECKBOX) {
-      const booleanValue = deriveBoolean( value );
-      return {
-        [type]: booleanValue
-      };
-    }
-    // #https://developers.notion.com/reference/page-property-values#relation
-    if (type === BLOCK_TYPE_RELATION) {
-      if (Array.isArray(value)) {
-  
-        if (value.every( v => typeof v === 'string' )) {
-          return {
-            [type]: value.map( v => {
-              return {
-                "id": v
-              };
-            } )
-          };
-        }
-        return {
-          [type]: value
-        };
-      }
-    }
-    
+  const type = block[DGMDCC_BLOCK_TYPE];
+  const value = block[DGMDCC_BLOCK_VALUE];
+
+  if ([BLOCK_TYPE_CREATED_TIME, BLOCK_TYPE_LAST_EDITED_TIME].includes( type )) {
     return null;
+  }
+
+  if (BLOCK_TYPE_DATE === type) {
+    const startDateValue = new Date( value[DGMDCC_BLOCK_DATE_START] );
+    if (isFinite(startDateValue)) {
+      const dateObj = {
+        [DGMDCC_BLOCK_DATE_START]: startDateValue.toISOString()
+      };
+      const endDateValue = new Date( value[DGMDCC_BLOCK_DATE_END] );
+      if (isFinite(endDateValue)) {
+        dateObj[DGMDCC_BLOCK_DATE_END] = endDateValue.toISOString();
+      }
+      return {
+        [type]: dateObj
+      };
+    }
+  }
+
+  if ([BLOCK_TYPE_TITLE, BLOCK_TYPE_RICH_TEXT].includes( type )) {
+    const stringValue = String( value );
+    return {
+      [type]: [ {
+        "text": {
+          "content": stringValue
+        }
+      } ]
+    };
+  }
+
+  if ([BLOCK_TYPE_PHONE_NUMBER, BLOCK_TYPE_URL, BLOCK_TYPE_EMAIL].includes( type )) {
+    const stringValue = String( value );
+    return {
+      [type]: stringValue
+    };
+  }
+
+  if (type === BLOCK_TYPE_SELECT || type === BLOCK_TYPE_STATUS) {
+    const stringValue = String( value );
+    return {
+      [type]: {
+        "name": stringValue
+      }
+    };
+  }
+  if (type === BLOCK_TYPE_NUMBER) {
+    const numValue = Number( value );
+    if (isFinite(numValue)) {
+      return {
+        [type]: numValue
+      };
+    }
+  }
+  if (type === BLOCK_TYPE_MULTI_SELECT) {
+    if (Array.isArray(value)) {
+      const selects = value.map( v => {
+        return {
+          "name": String(v)
+        };
+      } );
+
+      return {
+        [type]: selects
+      };
+    }
+  }
+  if (type === BLOCK_TYPE_CHECKBOX) {
+    const booleanValue = deriveBoolean( value );
+    return {
+      [type]: booleanValue
+    };
+  }
+  // #https://developers.notion.com/reference/page-property-values#relation
+  if (type === BLOCK_TYPE_RELATION) {
+    if (Array.isArray(value)) {
+
+      if (value.every( v => typeof v === 'string' )) {
+        return {
+          [type]: value.map( v => {
+            return {
+              "id": v
+            };
+          } )
+        };
+      }
+      return {
+        [type]: value
+      };
+    }
+  }
+  
+  return null;
 };
   
 export const mmMetaToNotionBlock = ( block ) => {
-    const type = block[DGMDCC_BLOCK_TYPE];
-    const value = block[DGMDCC_BLOCK_VALUE];
-    if (type === BLOCK_TYPE_EMOJI) {
-      return {
-        [type]: value,
+  const type = block[DGMDCC_BLOCK_TYPE];
+  const value = block[DGMDCC_BLOCK_VALUE];
+  if (type === BLOCK_TYPE_EMOJI) {
+    return {
+      [type]: value,
+    }
+  }
+  if (type === BLOCK_TYPE_FILE_EXTERNAL) {
+    return {
+      "type": type,
+      "external": {
+        "url": value
       }
     }
-    if (type === BLOCK_TYPE_FILE_EXTERNAL) {
-      return {
-        "type": type,
-        "external": {
-          "url": value
-        }
-      }
-    }
+  }
 };
-  
+
+//todo -> this stays in the hook :-)
 export const mergeMmPageBlockLists = (existingList, incomingList) => {
   if (isNil(existingList)) {
     return incomingList;
