@@ -52,8 +52,8 @@ export default function Home() {
     filteredNotionData,
     updating
    } = useNotionData(
-    "https://proto-dgmd-cc.vercel.app/api/prototype?i=7c3c07bd-512d-42e9-8f59-158cd1a0da79" );
-    //"https://proto-dgmd-cc.vercel.app/api/query?d=ce748dc81b8444aba06b5cf5a0517fd7&b=false&r=true" );
+    // "https://proto-dgmd-cc.vercel.app/api/prototype?i=7c3c07bd-512d-42e9-8f59-158cd1a0da79" );
+    "http://localhost:3001/api/query?d=ce748dc81b8444aba06b5cf5a0517fd7&b=false&r=true" );
     //"https://proto-dgmd-cc.vercel.app/api/prototype?i=0265f0e9-7571-427a-a8ea-39cae000db74" );
 
   useEffect( () => {
