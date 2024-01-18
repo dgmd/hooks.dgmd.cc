@@ -24,18 +24,23 @@ import {
   DGMDCC_BLOCK_PROPERTIES,
   DGMDCC_BLOCK_TYPE,
   DGMDCC_BLOCK_VALUE,
-  URL_SEARCH_PARAM_ACTION,
-  URL_SEARCH_PARAM_CREATE_BLOCK_ID,
-  URL_SEARCH_PARAM_CREATE_CHILDREN,
-  URL_SEARCH_PARAM_CREATE_META,
-  URL_SEARCH_PARAM_DELETE_BLOCK_ID,
-  URL_SEARCH_PARAM_UPDATE_BLOCK,
-  URL_SEARCH_PARAM_UPDATE_BLOCK_ID,
-  URL_SEARCH_PARAM_UPDATE_META,
-  URL_SEARCH_VALUE_ACTION_CREATE,
-  URL_SEARCH_VALUE_ACTION_DELETE,
-  URL_SEARCH_VALUE_ACTION_UPDATE
+
+  CRUD_VALUE_ACTION_DELETE
 } from './constants.js';
+
+import {
+  CRUD_VALUE_ACTION_CREATE,
+  CRUD_PARAM_ACTION,
+  CRUD_VALUE_ACTION_DELETE,
+  CRUD_PARAM_DELETE_BLOCK_ID,
+  CRUD_PARAM_CREATE_BLOCK_ID,
+  CRUD_PARAM_CREATE_CHILDREN,
+  CRUD_PARAM_CREATE_META,
+  CRUD_PARAM_UPDATE_META,
+  CRUD_VALUE_ACTION_UPDATE,
+  CRUD_PARAM_UPDATE_BLOCK,
+  CRUD_PARAM_UPDATE_BLOCK_ID
+} from 'constants.dgmd.cc';
 
 import {
   mmMetaToNotionBlock,
@@ -100,10 +105,10 @@ export const useNotionData = url => {
       }
 
       const updateUrl = new URL( '/api/update', urlObj.origin );
-      updateUrl.searchParams.append( URL_SEARCH_PARAM_ACTION, URL_SEARCH_VALUE_ACTION_CREATE );
-      updateUrl.searchParams.append( URL_SEARCH_PARAM_CREATE_BLOCK_ID, dbId );
-      updateUrl.searchParams.append( URL_SEARCH_PARAM_CREATE_CHILDREN, JSON.stringify(blockList) );
-      updateUrl.searchParams.append( URL_SEARCH_PARAM_CREATE_META, JSON.stringify(headerList) );
+      updateUrl.searchParams.append( CRUD_PARAM_ACTION, CRUD_VALUE_ACTION_CREATE );
+      updateUrl.searchParams.append( CRUD_PARAM_CREATE_BLOCK_ID, dbId );
+      updateUrl.searchParams.append( CRUD_PARAM_CREATE_CHILDREN, JSON.stringify(blockList) );
+      updateUrl.searchParams.append( CRUD_PARAM_CREATE_META, JSON.stringify(headerList) );
       rUpdating.current = true;
       setUrlUpdateObj( x => updateUrl.href );
     }
@@ -173,10 +178,10 @@ export const useNotionData = url => {
       }
 
       const updateUrl = new URL( '/api/update', urlObj.origin );
-      updateUrl.searchParams.append( URL_SEARCH_PARAM_ACTION, URL_SEARCH_VALUE_ACTION_UPDATE );
-      updateUrl.searchParams.append( URL_SEARCH_PARAM_UPDATE_BLOCK_ID, pgId );
-      updateUrl.searchParams.append( URL_SEARCH_PARAM_UPDATE_BLOCK, JSON.stringify(propList) );
-      updateUrl.searchParams.append( URL_SEARCH_PARAM_UPDATE_META, JSON.stringify(metaList) );
+      updateUrl.searchParams.append( CRUD_PARAM_ACTION, CRUD_VALUE_ACTION_UPDATE );
+      updateUrl.searchParams.append( CRUD_PARAM_UPDATE_BLOCK_ID, pgId );
+      updateUrl.searchParams.append( CRUD_PARAM_UPDATE_BLOCK, JSON.stringify(propList) );
+      updateUrl.searchParams.append( CRUD_PARAM_UPDATE_META, JSON.stringify(metaList) );
       rUpdating.current = true;
       setUrlUpdateObj( x => updateUrl.href );
     }
@@ -215,8 +220,8 @@ export const useNotionData = url => {
     }
     if (isNotionDataLive(notionData)) {
       const updateUrl = new URL( '/api/update', urlObj.origin );
-      updateUrl.searchParams.append( URL_SEARCH_PARAM_ACTION, URL_SEARCH_VALUE_ACTION_DELETE );
-      updateUrl.searchParams.append( URL_SEARCH_PARAM_DELETE_BLOCK_ID, pgId );
+      updateUrl.searchParams.append( CRUD_PARAM_ACTION, CRUD_VALUE_ACTION_DELETE );
+      updateUrl.searchParams.append( CRUD_PARAM_DELETE_BLOCK_ID, pgId );
       rUpdating.current = true;
       setUrlUpdateObj( x => updateUrl.href );
     }
@@ -270,7 +275,7 @@ export const useNotionData = url => {
 
         
         // const params = new URLSearchParams( updateUrl );
-        // if (params.has( URL_SEARCH_PARAM_PAGE_CURSOR_TYPE_REQUEST )) {
+        // if (params.has( CRUD_PARAM_PAGE_CURSOR_TYPE_REQUEST )) {
         //   const exsPrimaryPgs = getPrimaryPgs( newJsonObject );
         //   const newPrimaryPgs = getPrimaryPgs( crudJson );
         //   const merged = mergeLists( exsPrimaryPgs, newPrimaryPgs );
