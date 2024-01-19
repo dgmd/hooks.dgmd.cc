@@ -4,7 +4,6 @@ import {
 } from 'lodash-es';
 
 import {
-  BLOCK_TYPE_RELATION,
   DGMDCC_BLOCK_ID,
   DGMDCC_BLOCK_METADATA,
   DGMDCC_BLOCK_PROPERTIES,
@@ -19,6 +18,10 @@ import {
   NOTION_RESULT_SUCCESS,
   SNAPSHOT_TIMESTAMP
 } from './constants.js';
+
+import {
+  BLOCK_TYPE_RELATION,
+} from 'constants.dgmd.cc';
 
 // # # #
 export const isNotionDataLoaded = (jsonObject) => {
