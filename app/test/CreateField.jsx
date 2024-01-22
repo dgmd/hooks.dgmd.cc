@@ -1,23 +1,21 @@
-
 import {
   Fragment,
   useLayoutEffect,
   useRef,
   useState
 } from 'react';
-  
-  import {
+
+import {
+  getNotionDataAllDbIds
+} from '../hook/dataUtils.js';
+import {
   getTextAreaStyle,
   headerStyle,
   linkStyle,
   sectionStyle
 } from './Look.js';
-  
-  import {
-  getNotionDataAllDbIds
-} from '../hook/dataUtils.js';
-  
-  export const CreateField = ({notionData, onCreate}) => {
+
+export const CreateField = ({notionData, onCreate}) => {
   
     const createTextAreaRef = useRef( null );
     const [createTerms, setCreateTerms] = useState( null );

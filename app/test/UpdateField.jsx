@@ -1,4 +1,7 @@
-
+import {
+  QUERY_RESPONSE_KEY_DATA_METADATA,
+  QUERY_RESPONSE_KEY_DATA_PROPERTIES
+} from 'constants.dgmd.cc';
 import {
   useLayoutEffect,
   useRef,
@@ -10,11 +13,6 @@ import {
   linkStyle,
   sectionStyle
 } from "./Look";
-
-import {
-  DGMDCC_BLOCK_METADATA,
-  DGMDCC_BLOCK_PROPERTIES
-} from '../hook/constants.js';
 
 export const UpdateField = ({dbId, pageId, onUpdate}) => {
 
@@ -28,8 +26,8 @@ export const UpdateField = ({dbId, pageId, onUpdate}) => {
         return x;
       }
       return JSON.stringify( {
-        [DGMDCC_BLOCK_PROPERTIES]: {},
-        [DGMDCC_BLOCK_METADATA]: {}
+        [QUERY_RESPONSE_KEY_DATA_PROPERTIES]: {},
+        [QUERY_RESPONSE_KEY_DATA_METADATA]: {}
       }, null, 2 );
     } );
   }, [

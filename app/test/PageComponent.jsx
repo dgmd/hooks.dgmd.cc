@@ -1,23 +1,19 @@
-
 import {
   useState
 } from 'react';
 
 import {
-  DeleteField
-} from './DeleteField.jsx';
-
-import {
-  UpdateField
-} from './UpdateField.jsx';
-
-import {
   getPageId
 } from '../hook/pageUtils.js';
-
+import {
+  DeleteField
+} from './DeleteField.jsx';
 import {
   headerStyle
 } from './Look.js';
+import {
+  UpdateField
+} from './UpdateField.jsx';
 
 export const PageComponent = ({page, dbId, handleDelete, handleUpdate}) => {
 

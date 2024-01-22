@@ -10,9 +10,14 @@
   },
   "dependencies": {
     "autoprefixer": "10.4.15",
-    "constants.dgmd.cc": "git+ssh://git@github.com:dgmd/constants.dgmd.cc.git",
+    "constants.dgmd.cc": "file:../constants.dgmd.cc",
     "eslint": "8.49.0",
     "eslint-config-next": "13.4.19",
+    "import-sort": "^6.0.0",
+    "import-sort-cli": "^6.0.0",
+    "import-sort-config": "^6.0.0",
+    "import-sort-parser-babylon": "^6.0.0",
+    "import-sort-style-module": "^6.0.0",
     "lodash-es": "^4.17.21",
     "next": "13.4.19",
     "postcss": "8.4.29",
@@ -20,5 +25,15 @@
     "react-dom": "18.2.0",
     "tailwindcss": "3.3.3"
   },
-  "packageManager": "yarn@4.0.2"
+  "packageManager": "yarn@4.0.2",
+  "importSort": {
+    ".js, .jsx, .es6, .es": {
+      "style": "module"
+    },
+    ".ts, .tsx": {
+      "parser": "typescript",
+      "style": "module",
+      "options": {}
+    }
+  }
 }

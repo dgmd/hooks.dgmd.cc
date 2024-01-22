@@ -1,4 +1,3 @@
-
 import {
   Fragment,
   useLayoutEffect,
@@ -7,23 +6,21 @@ import {
 } from 'react';
 
 import {
-  getTextAreaStyle,
-  headerStyle,
-  linkStyle,
-  sectionStyle
-} from './Look.js';
-
-import {
-  getNotionDataAllDbIds
-} from '../hook/dataUtils.js';
-
-import {
   SEARCH_DEPTH,
   SEARCH_INFO,
   SEARCH_QUERY,
   SEARCH_TYPE,
   SEARCH_TYPE_SIMPLE
 } from '../hook/constants.js';
+import {
+  getNotionDataAllDbIds
+} from '../hook/dataUtils.js';
+import {
+  getTextAreaStyle,
+  headerStyle,
+  linkStyle,
+  sectionStyle
+} from './Look.js';
 
 export const SearchField = ({notionData, onSearch}) => {
 

@@ -1,7 +1,7 @@
 import {
-  sectionStyle,
   headerStyle,
-  linkStyle
+  linkStyle,
+  sectionStyle
 } from './Look.js';
 
 export const CursorField = ({hasNextCursor, onRequestNextCursor}) => {

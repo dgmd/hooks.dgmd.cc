@@ -1,7 +1,6 @@
-
 import {
-  sectionStyle,
-  headerStyle
+  headerStyle,
+  sectionStyle
 } from './Look.js';
 
 export const UpdateStatus = ({title, status}) => {

@@ -1,4 +1,3 @@
-
 import {
   Fragment,
   useLayoutEffect,
@@ -7,15 +6,14 @@ import {
 } from 'react';
 
 import {
+  getNotionDataAllDbIds
+} from '../hook/dataUtils.js';
+import {
   getTextAreaStyle,
   headerStyle,
   linkStyle,
   sectionStyle
 } from './Look.js';
-
-import {
-  getNotionDataAllDbIds
-} from '../hook/dataUtils.js';
 
 export const SortField = ({notionData, onSort}) => {
 

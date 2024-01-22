@@ -1,14 +1,31 @@
 import {
+  CRUD_PARAM_ACTION,
+  CRUD_PARAM_CREATE_BLOCK_ID,
+  CRUD_PARAM_CREATE_CHILDREN,
+  CRUD_PARAM_CREATE_META,
+  CRUD_PARAM_DELETE_BLOCK_ID,
+  CRUD_PARAM_UPDATE_BLOCK,
+  CRUD_PARAM_UPDATE_BLOCK_ID,
+  CRUD_PARAM_UPDATE_META,
+  CRUD_VALUE_ACTION_CREATE,
+  CRUD_VALUE_ACTION_DELETE,
+  CRUD_VALUE_ACTION_UPDATE,
+  QUERY_RESPONSE_KEY_BLOCK_ID,
+  QUERY_RESPONSE_KEY_DATA_METADATA,
+  QUERY_RESPONSE_KEY_DATA_PROPERTIES,
+  QUERY_RESPONSE_KEY_DATA_TYPE,
+  QUERY_RESPONSE_KEY_DATA_VALUE
+} from 'constants.dgmd.cc';
+import {
+  isNil,
+  isObject
+} from 'lodash-es';
+import {
   useCallback,
   useEffect,
   useRef,
   useState
 } from 'react';
-
-import {
-  isNil,
-  isObject
-} from 'lodash-es';
 
 import {
   getNotionDataDb,
@@ -17,38 +34,12 @@ import {
   isNotionDataLive,
   spliceNotionPage
 } from './dataUtils.js';
-
-import {
-  DGMDCC_BLOCK_ID,
-  DGMDCC_BLOCK_METADATA,
-  DGMDCC_BLOCK_PROPERTIES,
-  DGMDCC_BLOCK_TYPE,
-  DGMDCC_BLOCK_VALUE,
-
-  URL_SEARCH_VALUE_ACTION_DELETE
-} from './constants.js';
-
-import {
-  URL_SEARCH_VALUE_ACTION_CREATE,
-  URL_SEARCH_PARAM_ACTION,
-  URL_SEARCH_VALUE_ACTION_DELETE,
-  URL_SEARCH_PARAM_DELETE_BLOCK_ID,
-  URL_SEARCH_PARAM_CREATE_BLOCK_ID,
-  URL_SEARCH_PARAM_CREATE_CHILDREN,
-  URL_SEARCH_PARAM_CREATE_META,
-  URL_SEARCH_PARAM_UPDATE_META,
-  URL_SEARCH_VALUE_ACTION_UPDATE,
-  URL_SEARCH_PARAM_UPDATE_BLOCK,
-  URL_SEARCH_PARAM_UPDATE_BLOCK_ID
-} from 'constants.dgmd.cc';
-
 import {
   mmMetaToNotionBlock,
   mmPropToNotionBlock,
   searchPages,
   sortPages
 } from './pageUtils.js';
-
 import {
   uniqueKey
 } from './utils.js';
@@ -82,9 +73,9 @@ export const useNotionData = url => {
       return false;
     }
 
-    const pgPropData = newPages[DGMDCC_BLOCK_PROPERTIES];
+    const pgPropData = newPages[QUERY_RESPONSE_KEY_DATA_PROPERTIES];
     const pgPropDatas = isObject(pgPropData) ? pgPropData : {};
-    const pgMetaData = newPages[DGMDCC_BLOCK_METADATA];
+    const pgMetaData = newPages[QUERY_RESPONSE_KEY_DATA_METADATA];
     const pgMetaDatas = isObject( pgMetaData ) ? pgMetaData : {};
 
     if (isNotionDataLive(notionData)) {
@@ -105,10 +96,10 @@ export const useNotionData = url => {
       }
 
       const updateUrl = new URL( '/api/update', urlObj.origin );
-      updateUrl.searchParams.append( URL_SEARCH_PARAM_ACTION, URL_SEARCH_VALUE_ACTION_CREATE );
-      updateUrl.searchParams.append( URL_SEARCH_PARAM_CREATE_BLOCK_ID, dbId );
-      updateUrl.searchParams.append( URL_SEARCH_PARAM_CREATE_CHILDREN, JSON.stringify(blockList) );
-      updateUrl.searchParams.append( URL_SEARCH_PARAM_CREATE_META, JSON.stringify(headerList) );
+      updateUrl.searchParams.append( CRUD_PARAM_ACTION, CRUD_VALUE_ACTION_CREATE );
+      updateUrl.searchParams.append( CRUD_PARAM_CREATE_BLOCK_ID, dbId );
+      updateUrl.searchParams.append( CRUD_PARAM_CREATE_CHILDREN, JSON.stringify(blockList) );
+      updateUrl.searchParams.append( CRUD_PARAM_CREATE_META, JSON.stringify(headerList) );
       rUpdating.current = true;
       setUrlUpdateObj( x => updateUrl.href );
     }
@@ -117,13 +108,13 @@ export const useNotionData = url => {
         const x = structuredClone( notionData );
 
         const uId = uniqueKey();
-        pgMetaDatas[DGMDCC_BLOCK_ID] = {
-          [DGMDCC_BLOCK_TYPE]: DGMDCC_BLOCK_ID,
-          [DGMDCC_BLOCK_VALUE]: uId
+        pgMetaDatas[QUERY_RESPONSE_KEY_BLOCK_ID] = {
+          [QUERY_RESPONSE_KEY_DATA_TYPE]: QUERY_RESPONSE_KEY_BLOCK_ID,
+          [QUERY_RESPONSE_KEY_DATA_VALUE]: uId
         };
         const page = {
-          [DGMDCC_BLOCK_PROPERTIES]: pgPropDatas,
-          [DGMDCC_BLOCK_METADATA]: pgMetaDatas
+          [QUERY_RESPONSE_KEY_DATA_PROPERTIES]: pgPropDatas,
+          [QUERY_RESPONSE_KEY_DATA_METADATA]: pgMetaDatas
         };
         const xPgs = getNotionDataPages( x, dbId );
         xPgs.unshift( page );
@@ -155,9 +146,9 @@ export const useNotionData = url => {
     }
     const pgId = pgIds[0];
     const pgUpdate = update[dbId][pgId];
-    const pgUpdateMeta = pgUpdate[DGMDCC_BLOCK_METADATA];
+    const pgUpdateMeta = pgUpdate[QUERY_RESPONSE_KEY_DATA_METADATA];
     const pgUpdateMetas = isObject( pgUpdateMeta ) ? pgUpdateMeta : {};
-    const pgUpdateProp = pgUpdate[DGMDCC_BLOCK_PROPERTIES];
+    const pgUpdateProp = pgUpdate[QUERY_RESPONSE_KEY_DATA_PROPERTIES];
     const pgUpdateProps = isObject( pgUpdateProp ) ? pgUpdateProp : {};
     
     if (isNotionDataLive(notionData)) {
@@ -178,10 +169,10 @@ export const useNotionData = url => {
       }
 
       const updateUrl = new URL( '/api/update', urlObj.origin );
-      updateUrl.searchParams.append( URL_SEARCH_PARAM_ACTION, URL_SEARCH_VALUE_ACTION_UPDATE );
-      updateUrl.searchParams.append( URL_SEARCH_PARAM_UPDATE_BLOCK_ID, pgId );
-      updateUrl.searchParams.append( URL_SEARCH_PARAM_UPDATE_BLOCK, JSON.stringify(propList) );
-      updateUrl.searchParams.append( URL_SEARCH_PARAM_UPDATE_META, JSON.stringify(metaList) );
+      updateUrl.searchParams.append( CRUD_PARAM_ACTION, CRUD_VALUE_ACTION_UPDATE );
+      updateUrl.searchParams.append( CRUD_PARAM_UPDATE_BLOCK_ID, pgId );
+      updateUrl.searchParams.append( CRUD_PARAM_UPDATE_BLOCK, JSON.stringify(propList) );
+      updateUrl.searchParams.append( CRUD_PARAM_UPDATE_META, JSON.stringify(metaList) );
       rUpdating.current = true;
       setUrlUpdateObj( x => updateUrl.href );
     }
@@ -190,12 +181,12 @@ export const useNotionData = url => {
         const x = structuredClone( d );
         const xpg = getNotionDataPage( x, dbId, pgId );
 
-        const xpgMetas = xpg[DGMDCC_BLOCK_METADATA];
+        const xpgMetas = xpg[QUERY_RESPONSE_KEY_DATA_METADATA];
         for (const [key, value] of Object.entries(pgUpdateMetas)) {
           xpgMetas[key] = value;
         }
 
-        const xpgProps = xpg[DGMDCC_BLOCK_PROPERTIES];
+        const xpgProps = xpg[QUERY_RESPONSE_KEY_DATA_PROPERTIES];
         for (const [key, value] of Object.entries(pgUpdateProps)) {
           xpgProps[key] = value;
         }
@@ -220,8 +211,8 @@ export const useNotionData = url => {
     }
     if (isNotionDataLive(notionData)) {
       const updateUrl = new URL( '/api/update', urlObj.origin );
-      updateUrl.searchParams.append( URL_SEARCH_PARAM_ACTION, URL_SEARCH_VALUE_ACTION_DELETE );
-      updateUrl.searchParams.append( URL_SEARCH_PARAM_DELETE_BLOCK_ID, pgId );
+      updateUrl.searchParams.append( CRUD_PARAM_ACTION, CRUD_VALUE_ACTION_DELETE );
+      updateUrl.searchParams.append( CRUD_PARAM_DELETE_BLOCK_ID, pgId );
       rUpdating.current = true;
       setUrlUpdateObj( x => updateUrl.href );
     }
@@ -279,7 +270,7 @@ export const useNotionData = url => {
         //   const exsPrimaryPgs = getPrimaryPgs( newJsonObject );
         //   const newPrimaryPgs = getPrimaryPgs( crudJson );
         //   const merged = mergeLists( exsPrimaryPgs, newPrimaryPgs );
-        //   newJsonObject[NOTION_RESULT][NOTION_RESULT_PRIMARY_DATABASE][NOTION_RESULT_BLOCKS] = merged;
+        //   newJsonObject[NOTION_RESULT][NOTION_RESULT_QUERY_RESPONSE_KEY_PRIMARY_DATABASE][NOTION_RESULT_BLOCKS] = merged;
 
         //   const relDbs = crudJson[NOTION_RESULT][NOTION_RESULT_RELATION_DATABASES];
         //   for (const relDb of relDbs) {
@@ -298,8 +289,8 @@ export const useNotionData = url => {
         //   }
 
         //   const cursorData = 
-        //     crudJson[NOTION_RESULT][NOTION_RESULT_PRIMARY_DATABASE][NOTION_RESULT_CURSOR_DATA];
-        //   newJsonObject[NOTION_RESULT][NOTION_RESULT_PRIMARY_DATABASE][NOTION_RESULT_CURSOR_DATA] = cursorData;
+        //     crudJson[NOTION_RESULT][NOTION_RESULT_QUERY_RESPONSE_KEY_PRIMARY_DATABASE][NOTION_RESULT_CURSOR_DATA];
+        //   newJsonObject[NOTION_RESULT][NOTION_RESULT_QUERY_RESPONSE_KEY_PRIMARY_DATABASE][NOTION_RESULT_CURSOR_DATA] = cursorData;
 
         //   update(newJsonObject);
         // }
@@ -334,7 +325,7 @@ export const useNotionData = url => {
               const clone = structuredClone( x );
               const dbBlocks = getNotionDataPages( clone, dbId );
               const idx = dbBlocks.findIndex( x => 
-                x[DGMDCC_BLOCK_METADATA][DGMDCC_BLOCK_ID][DGMDCC_BLOCK_VALUE] === pgId );
+                x[QUERY_RESPONSE_KEY_DATA_METADATA][QUERY_RESPONSE_KEY_BLOCK_ID][QUERY_RESPONSE_KEY_DATA_VALUE] === pgId );
               if (idx >= 0) {
                 dbBlocks.splice( idx, 1, pg );
               }

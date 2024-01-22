@@ -1,24 +1,4 @@
 import {
-  DGMDCC_BLOCK_DATE_END,
-  DGMDCC_BLOCK_DATE_START,
-  DGMDCC_BLOCK_ID,
-  DGMDCC_BLOCK_METADATA,
-  DGMDCC_BLOCK_PROPERTIES,
-  DGMDCC_BLOCK_TYPE,
-  DGMDCC_BLOCK_VALUE,
-  SEARCH_DEPTH,
-  SEARCH_INFO,
-  SEARCH_QUERY,
-  SEARCH_TYPE,
-  SEARCH_TYPE_SIMPLE
-} from './constants.js';
-
-import {
-  isNil,
-  remove
-} from 'lodash-es';
-
-import {
   BLOCK_TYPE_CHECKBOX,
   BLOCK_TYPE_CREATED_TIME,
   BLOCK_TYPE_DATE,
@@ -34,27 +14,43 @@ import {
   BLOCK_TYPE_SELECT,
   BLOCK_TYPE_STATUS,
   BLOCK_TYPE_TITLE,
-  BLOCK_TYPE_URL
+  BLOCK_TYPE_URL,
+  DGMDCC_BLOCK_DATE_END,
+  DGMDCC_BLOCK_DATE_START,
+  QUERY_RESPONSE_KEY_BLOCK_ID,
+  QUERY_RESPONSE_KEY_DATA_METADATA,
+  QUERY_RESPONSE_KEY_DATA_PROPERTIES,
+  QUERY_RESPONSE_KEY_DATA_TYPE,
+  QUERY_RESPONSE_KEY_DATA_VALUE,
+  SEARCH_DEPTH,
+  SEARCH_INFO,
+  SEARCH_QUERY,
+  SEARCH_TYPE,
+  SEARCH_TYPE_SIMPLE
 } from 'constants.dgmd.cc';
+import {
+  isNil,
+  remove
+} from 'lodash-es';
 
 export const getPageMetadata = page => {
-  return page[DGMDCC_BLOCK_METADATA];
+  return page[QUERY_RESPONSE_KEY_DATA_METADATA];
 };
 
 //todo - return keys, or keys & values
 export const getPageProperties = page => {
-  return page[DGMDCC_BLOCK_PROPERTIES];
+  return page[QUERY_RESPONSE_KEY_DATA_PROPERTIES];
 };
 
 export const getPageId = page => 
-  getPageMetadata(page)[DGMDCC_BLOCK_ID][DGMDCC_BLOCK_VALUE];
+  getPageMetadata(page)[QUERY_RESPONSE_KEY_BLOCK_ID][QUERY_RESPONSE_KEY_DATA_VALUE];
 
 //todo: getPropertyByPage & getPropertyByPageId & getPropertyKeysByPage & getPropertyKeysByPageId
 export const getPageProperty = (page, propertyKey) => {
   if (isNil(page)) {
     return null;
   }
-  if (!(DGMDCC_BLOCK_PROPERTIES in page)) {
+  if (!(QUERY_RESPONSE_KEY_DATA_PROPERTIES in page)) {
     return null;
   }
   const properties = getPageProperties(page);
@@ -62,10 +58,10 @@ export const getPageProperty = (page, propertyKey) => {
     return null;
   }
   const propertyObject = properties[propertyKey];
-  if (!(DGMDCC_BLOCK_VALUE in propertyObject)) {
+  if (!(QUERY_RESPONSE_KEY_DATA_VALUE in propertyObject)) {
     return null;
   }
-  return propertyObject[DGMDCC_BLOCK_VALUE];
+  return propertyObject[QUERY_RESPONSE_KEY_DATA_VALUE];
 };
 
 //
@@ -82,8 +78,8 @@ export const sortPages = (pgs, fields, directions) => {
         const bProps = getPageProperties(b);
         const aField = aProps[field];
         const bField = bProps[field];
-        const aVal = aField[DGMDCC_BLOCK_VALUE];
-        const bVal = bField[DGMDCC_BLOCK_VALUE];
+        const aVal = aField[QUERY_RESPONSE_KEY_DATA_VALUE];
+        const bVal = bField[QUERY_RESPONSE_KEY_DATA_VALUE];
         const aNil = isNil(aVal);
         const bNil = isNil(bVal);
         if (aNil && bNil) {
@@ -96,7 +92,7 @@ export const sortPages = (pgs, fields, directions) => {
           return 1 * direction;
         }
 
-        const aType = aField[DGMDCC_BLOCK_TYPE];
+        const aType = aField[QUERY_RESPONSE_KEY_DATA_TYPE];
         if (aType === BLOCK_TYPE_DATE) {
           const aDateVal = getTimeZoneNeutralDate( aVal[DGMDCC_BLOCK_DATE_START] );
           const bDateVal = getTimeZoneNeutralDate( bVal[DGMDCC_BLOCK_DATE_START] );
@@ -162,9 +158,9 @@ export const searchPages = ( pgs, searchObj ) => {
   const simpleSearchPage = ( 
     pg, searchObj, searchedPgsMap, searchTracker, depth ) => {
 
-    const pgMetas = pg[DGMDCC_BLOCK_METADATA];
-    const pgProps = pg[DGMDCC_BLOCK_PROPERTIES];
-    const pgId = pgMetas[DGMDCC_BLOCK_ID][DGMDCC_BLOCK_VALUE];
+    const pgMetas = pg[QUERY_RESPONSE_KEY_DATA_METADATA];
+    const pgProps = pg[QUERY_RESPONSE_KEY_DATA_PROPERTIES];
+    const pgId = pgMetas[QUERY_RESPONSE_KEY_BLOCK_ID][QUERY_RESPONSE_KEY_DATA_VALUE];
 
     const searchInfo = searchObj[SEARCH_INFO];
     const query = searchInfo[SEARCH_QUERY].toLowerCase();
@@ -176,9 +172,9 @@ export const searchPages = ( pgs, searchObj ) => {
 
     for (const pgKey of pgKeys) {
       const pgProp = pgProps[pgKey];
-      const pgVal = pgProp[DGMDCC_BLOCK_VALUE];
+      const pgVal = pgProp[QUERY_RESPONSE_KEY_DATA_VALUE];
       if (!isNil(pgVal)) {
-        const pgType = pgProp[DGMDCC_BLOCK_TYPE];
+        const pgType = pgProp[QUERY_RESPONSE_KEY_DATA_TYPE];
         if (pgType === BLOCK_TYPE_TITLE ||
             pgType === BLOCK_TYPE_RICH_TEXT ||
             pgType === BLOCK_TYPE_NUMBER ||
@@ -208,9 +204,9 @@ export const searchPages = ( pgs, searchObj ) => {
 
     for (const pgKey of pgKeys) {
       const pgProp = pgProps[pgKey];
-      const pgVal = pgProp[DGMDCC_BLOCK_VALUE];
+      const pgVal = pgProp[QUERY_RESPONSE_KEY_DATA_VALUE];
       if (!isNil(pgVal)) {
-        const pgType = pgProp[DGMDCC_BLOCK_TYPE];
+        const pgType = pgProp[QUERY_RESPONSE_KEY_DATA_TYPE];
         if (pgType === BLOCK_TYPE_RELATION) {
           for (const relPgObj of pgVal) {
             const relPgId = relPgObj['PAGE_ID'];
@@ -249,8 +245,8 @@ export const searchPages = ( pgs, searchObj ) => {
       }
 
       const siInclude = si[SEARCH_INCLUDE];
-      const pgVal = pgData[siField][DGMDCC_BLOCK_VALUE];
-      const pgType = pgData[siField][DGMDCC_BLOCK_TYPE];
+      const pgVal = pgData[siField][QUERY_RESPONSE_KEY_DATA_VALUE];
+      const pgType = pgData[siField][QUERY_RESPONSE_KEY_DATA_TYPE];
 
       const siQuery = si[SEARCH_QUERY];
       const nilSiQuery = isNil(siQuery);
@@ -306,7 +302,7 @@ export const searchPages = ( pgs, searchObj ) => {
     pgClears.length = 0;
     for (const si of siRels) {
       const siField = si[SEARCH_FIELD];
-      const pgVal = pgProps[siField][DGMDCC_BLOCK_VALUE];
+      const pgVal = pgProps[siField][QUERY_RESPONSE_KEY_DATA_VALUE];
       for (const relPgObj of pgVal) {
         const relPgId = relPgObj['PAGE_ID'];
         const relDbId = relPgObj['DATABASE_ID'];
@@ -345,8 +341,8 @@ export const searchPages = ( pgs, searchObj ) => {
 //  todo --> move this to the server
 //
 export const mmPropToNotionBlock = ( block ) => {
-  const type = block[DGMDCC_BLOCK_TYPE];
-  const value = block[DGMDCC_BLOCK_VALUE];
+  const type = block[QUERY_RESPONSE_KEY_DATA_TYPE];
+  const value = block[QUERY_RESPONSE_KEY_DATA_VALUE];
 
   if ([BLOCK_TYPE_CREATED_TIME, BLOCK_TYPE_LAST_EDITED_TIME].includes( type )) {
     return null;
@@ -444,8 +440,8 @@ export const mmPropToNotionBlock = ( block ) => {
 };
   
 export const mmMetaToNotionBlock = ( block ) => {
-  const type = block[DGMDCC_BLOCK_TYPE];
-  const value = block[DGMDCC_BLOCK_VALUE];
+  const type = block[QUERY_RESPONSE_KEY_DATA_TYPE];
+  const value = block[QUERY_RESPONSE_KEY_DATA_VALUE];
   if (type === BLOCK_TYPE_EMOJI) {
     return {
       [type]: value,
@@ -469,7 +465,7 @@ export const mergeMmPageBlockLists = (existingList, incomingList) => {
   if (isNil(incomingList)) {
     return existingList;
   }
-  const getId = obj => getPageMetadata(obj)[DGMDCC_BLOCK_ID][DGMDCC_BLOCK_VALUE];
+  const getId = obj => getPageMetadata(obj)[QUERY_RESPONSE_KEY_BLOCK_ID][QUERY_RESPONSE_KEY_DATA_VALUE];
 
   const mergedList = [...existingList, ...incomingList.reduce((acc, obj) => {
     const existingIndex = existingList.findIndex(
