@@ -2,22 +2,22 @@
 export const NOTION_QUERY = 'NOTION_QUERY';
 export const NOTION_DATABASE = 'NOTION_DATABASE';
 
-export const BLOCK_TYPE_CREATED_TIME = 'created_time';
-export const BLOCK_TYPE_LAST_EDITED_TIME = 'last_edited_time'
-export const BLOCK_TYPE_EMAIL = 'email';
-export const BLOCK_TYPE_PHONE_NUMBER = 'phone_number';
-export const BLOCK_TYPE_URL = 'url';
-export const BLOCK_TYPE_SELECT = 'select';
-export const BLOCK_TYPE_STATUS = 'status';
-export const BLOCK_TYPE_TITLE = 'title';
-export const BLOCK_TYPE_RICH_TEXT = 'rich_text';
-export const BLOCK_TYPE_NUMBER = 'number';
-export const BLOCK_TYPE_MULTI_SELECT = 'multi_select';
-export const BLOCK_TYPE_CHECKBOX = 'checkbox';
-export const BLOCK_TYPE_DATE = 'date';
-export const BLOCK_TYPE_EMOJI = 'emoji';
-export const BLOCK_TYPE_FILE_EXTERNAL = 'external';
-export const BLOCK_TYPE_RELATION = 'relation';
+export const DGMD_BLOCK_TYPE_CREATED_TIME = 'created_time';
+export const DGMD_BLOCK_TYPE_LAST_EDITED_TIME = 'last_edited_time'
+export const DGMD_BLOCK_TYPE_EMAIL = 'email';
+export const DGMD_BLOCK_TYPE_PHONE_NUMBER = 'phone_number';
+export const DGMD_BLOCK_TYPE_URL = 'url';
+export const DGMD_BLOCK_TYPE_SELECT = 'select';
+export const DGMD_BLOCK_TYPE_STATUS = 'status';
+export const DGMD_BLOCK_TYPE_TITLE = 'title';
+export const DGMD_BLOCK_TYPE_RICH_TEXT = 'rich_text';
+export const DGMD_BLOCK_TYPE_NUMBER = 'number';
+export const DGMD_BLOCK_TYPE_MULTI_SELECT = 'multi_select';
+export const DGMD_BLOCK_TYPE_CHECKBOX = 'checkbox';
+export const DGMD_BLOCK_TYPE_DATE = 'date';
+export const DGMD_BLOCK_TYPE_EMOJI = 'emoji';
+export const DGMD_BLOCK_TYPE_FILE_EXTERNAL = 'external';
+export const DGMD_BLOCK_TYPE_RELATION = 'relation';
 
 
 export const SEARCH_TYPE = 'SEARCH_TYPE';

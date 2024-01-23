@@ -1,16 +1,17 @@
 import {
-  BLOCK_TYPE_RELATION,
-  DGMDCC_BLOCKS,
-  QUERY_RESPONSE_KEY_BLOCK_ID,
-  QUERY_RESPONSE_KEY_CURSOR_DATA,
-  QUERY_RESPONSE_KEY_DATABASE_ID,
-  QUERY_RESPONSE_KEY_DATA_METADATA,
-  QUERY_RESPONSE_KEY_DATA_PROPERTIES,
-  QUERY_RESPONSE_KEY_DATA_TYPE,
-  QUERY_RESPONSE_KEY_DATA_VALUE,
-  QUERY_RESPONSE_KEY_PRIMARY_DATABASE,
-  QUERY_RESPONSE_KEY_RELATION_DATABASES,
-  QUERY_RESPONSE_KEY_SNAPSHOT_TIMESTAMP,
+  DGMD_BLOCKS,
+  DGMD_BLOCK_TYPE_ID,
+  DGMD_BLOCK_TYPE_RELATION,
+  DGMD_CURSOR_DATA,
+  DGMD_DATABASE_ID,
+  DGMD_METADATA,
+  DGMD_PRIMARY_DATABASE,
+  DGMD_PROPERTIES,
+  DGMD_RELATION_DATABASES,
+  DGMD_TYPE,
+  DGMD_VALUE,
+  PROTO_RESPONSE_KEY_SNAPSHOT_TIMESTAMP,
+  QUERY_RESPONSE_KEY_RESULT,
   QUERY_RESPONSE_KEY_SUCCESS
 } from 'constants.dgmd.cc';
 import {
@@ -23,7 +24,7 @@ export const isNotionDataLoaded = (jsonObject) => {
 };
 
 export const isNotionDataLive = (jsonObject) => {
-  return isNil( jsonObject[QUERY_RESPONSE_KEY_SNAPSHOT_TIMESTAMP] );
+  return isNil( jsonObject[PROTO_RESPONSE_KEY_SNAPSHOT_TIMESTAMP] );
 };
   
 export const isNotionDataValid = (jsonObject) => {
@@ -43,8 +44,8 @@ export const getNotionDataPrimaryDbId = (jsonObject) => {
   }
   try {
     const liveData = isNotionDataLive(jsonObject);
-    const job = liveData ? jsonObject[DGMDCC] : jsonObject;
-    return job[QUERY_RESPONSE_KEY_PRIMARY_DATABASE][QUERY_RESPONSE_KEY_DATABASE_ID];
+    const job = liveData ? jsonObject[QUERY_RESPONSE_KEY_RESULT] : jsonObject;
+    return job[DGMD_PRIMARY_DATABASE][DGMD_DATABASE_ID];
   }
   catch( err ) {
     console.log( err );
@@ -56,8 +57,8 @@ export const getNotionDataRelationDbIds = (jsonObject) => {
   if (!isNil(jsonObject)) {
     try {
       const liveData = isNotionDataLive(jsonObject);
-      const job = liveData ? jsonObject[DGMDCC] : jsonObject;
-      return job[QUERY_RESPONSE_KEY_RELATION_DATABASES].map( db => db[QUERY_RESPONSE_KEY_DATABASE_ID] );
+      const job = liveData ? jsonObject[QUERY_RESPONSE_KEY_RESULT] : jsonObject;
+      return job[DGMD_RELATION_DATABASES].map( db => db[DGMD_DATABASE_ID] );
     }
     catch( err ) {
       console.log( err );
@@ -75,15 +76,15 @@ export const getNotionDataDb = (jsonObject, dbId) => {
     return null;
   }
 
-  const job = liveData ? jsonObject[DGMDCC] : jsonObject;
+  const job = liveData ? jsonObject[QUERY_RESPONSE_KEY_RESULT] : jsonObject;
 
-  const primary = job[QUERY_RESPONSE_KEY_PRIMARY_DATABASE];
-  if (primary[QUERY_RESPONSE_KEY_DATABASE_ID] === dbId) {
+  const primary = job[DGMD_PRIMARY_DATABASE];
+  if (primary[DGMD_DATABASE_ID] === dbId) {
     return primary;
   }
-  for (var i=0; i<job[QUERY_RESPONSE_KEY_RELATION_DATABASES].length; i++) {
-    const db = job[QUERY_RESPONSE_KEY_RELATION_DATABASES][i];
-    if (db[QUERY_RESPONSE_KEY_DATABASE_ID] === dbId) {
+  for (var i=0; i<job[DGMD_RELATION_DATABASES].length; i++) {
+    const db = job[DGMD_RELATION_DATABASES][i];
+    if (db[DGMD_DATABASE_ID] === dbId) {
       return db;
     }
   }
@@ -96,7 +97,7 @@ export const getNextCursorData = (jsonObject) => {
   if (isNil(db)) {
     return null;
   }
-  const cursorData = db[QUERY_RESPONSE_KEY_CURSOR_DATA];
+  const cursorData = db[DGMD_CURSOR_DATA];
   return cursorData;
 };
 
@@ -109,15 +110,15 @@ export const getDbIdByName = (jsonObject, name) => {
     return null;
   }
   try {
-    const primary = jsonObject[QUERY_RESPONSE_KEY_PRIMARY_DATABASE];
+    const primary = jsonObject[DGMD_PRIMARY_DATABASE];
     if (primary[DGMDCC_DATABASE_TITLE] === name) {
-      return primary[QUERY_RESPONSE_KEY_DATABASE_ID];
+      return primary[DGMD_DATABASE_ID];
     }
-    const rels = jsonObject[QUERY_RESPONSE_KEY_RELATION_DATABASES];
+    const rels = jsonObject[DGMD_RELATION_DATABASES];
     for (var i=0; i<rels.length; i++) {
       const db = rels[i];
       if (db[DGMDCC_DATABASE_TITLE] === name) {
-        return db[QUERY_RESPONSE_KEY_DATABASE_ID];
+        return db[DGMD_DATABASE_ID];
       }
     }
     return null;
@@ -132,9 +133,9 @@ export const getNotionDataPage = (jsonObject, dbId, pageId) => {
   for (const xdbId of dbIds) {
     const dbBlocks = getNotionDataPages( jsonObject, xdbId );
     const pageIdx = dbBlocks.findIndex( block => {
-      const blockIdMeta = block[QUERY_RESPONSE_KEY_DATA_METADATA];
-      const blockIdObj = blockIdMeta[QUERY_RESPONSE_KEY_BLOCK_ID];
-      const blockId = blockIdObj[QUERY_RESPONSE_KEY_DATA_VALUE];
+      const blockIdMeta = block[DGMD_METADATA];
+      const blockIdObj = blockIdMeta[DGMD_BLOCK_TYPE_ID];
+      const blockId = blockIdObj[DGMD_VALUE];
       return blockId === pageId;
     } );
     if (pageIdx >= 0) {
@@ -151,7 +152,7 @@ export const getNotionDataPages = (jsonObject, dbId) => {
 
   try {
     const db = getNotionDataDb( jsonObject, dbId );
-    const dbBlocks = db[DGMDCC_BLOCKS];
+    const dbBlocks = db[DGMD_BLOCKS];
     return dbBlocks;
   }
   catch( err ) {
@@ -162,9 +163,9 @@ export const getNotionDataPages = (jsonObject, dbId) => {
 
 // const getNotionDataPageIdx = (dbBlocks, pageId) => {
 //   const pageIdx = dbBlocks.findIndex( block => {
-//     const blockIdMeta = block[QUERY_RESPONSE_KEY_DATA_METADATA];
-//     const blockIdObj = blockIdMeta[QUERY_RESPONSE_KEY_BLOCK_ID];
-//     const blockId = blockIdObj[QUERY_RESPONSE_KEY_DATA_VALUE];
+//     const blockIdMeta = block[DGMD_METADATA];
+//     const blockIdObj = blockIdMeta[DGMD_BLOCK_TYPE_ID];
+//     const blockId = blockIdObj[DGMD_VALUE];
 //     return blockId === pageId;
 //   } );
 //   return pageIdx;
@@ -185,17 +186,17 @@ export const spliceNotionPage = (notionData, pgId) => {
 
   for (const dbId of allDbIds) {
     const db = getNotionDataDb( x, dbId, true );
-    const dbPgs = db[DGMDCC_BLOCKS];
+    const dbPgs = db[DGMD_BLOCKS];
     const idx = dbPgs.findIndex( x => 
-      x[QUERY_RESPONSE_KEY_DATA_METADATA][QUERY_RESPONSE_KEY_BLOCK_ID][QUERY_RESPONSE_KEY_DATA_VALUE] === pgId );
+      x[DGMD_METADATA][DGMD_BLOCK_TYPE_ID][DGMD_VALUE] === pgId );
     if (idx >= 0) {
       dbPgs.splice( idx, 1 );
     }
     for (const pg of dbPgs) {
-      const pgProps = pg[QUERY_RESPONSE_KEY_DATA_PROPERTIES];
+      const pgProps = pg[DGMD_PROPERTIES];
       for (const [key, value] of Object.entries(pgProps)) {
-        if (value[QUERY_RESPONSE_KEY_DATA_TYPE] === BLOCK_TYPE_RELATION) {
-          const relValue = value[QUERY_RESPONSE_KEY_DATA_VALUE];
+        if (value[DGMD_TYPE] === DGMD_BLOCK_TYPE_RELATION) {
+          const relValue = value[DGMD_VALUE];
           const relIdx = relValue.findIndex( x => 
             x['PAGE_ID'] === pgId );
           if (relIdx >= 0) {

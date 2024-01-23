@@ -1,47 +1,47 @@
 import {
-  CRUD_PARAM_ACTION,
-  CRUD_PARAM_CREATE_BLOCK_ID,
-  CRUD_PARAM_CREATE_CHILDREN,
-  CRUD_PARAM_CREATE_META,
-  CRUD_PARAM_DELETE_BLOCK_ID,
-  CRUD_PARAM_UPDATE_BLOCK,
-  CRUD_PARAM_UPDATE_BLOCK_ID,
-  CRUD_PARAM_UPDATE_META,
-  CRUD_VALUE_ACTION_CREATE,
-  CRUD_VALUE_ACTION_DELETE,
-  CRUD_VALUE_ACTION_UPDATE,
-  QUERY_RESPONSE_KEY_BLOCK_ID,
-  QUERY_RESPONSE_KEY_DATA_METADATA,
-  QUERY_RESPONSE_KEY_DATA_PROPERTIES,
-  QUERY_RESPONSE_KEY_DATA_TYPE,
-  QUERY_RESPONSE_KEY_DATA_VALUE
+    CRUD_PARAM_ACTION,
+    CRUD_PARAM_CREATE_BLOCK_ID,
+    CRUD_PARAM_CREATE_CHILDREN,
+    CRUD_PARAM_CREATE_META,
+    CRUD_PARAM_DELETE_BLOCK_ID,
+    CRUD_PARAM_UPDATE_BLOCK,
+    CRUD_PARAM_UPDATE_BLOCK_ID,
+    CRUD_PARAM_UPDATE_META,
+    CRUD_VALUE_ACTION_CREATE,
+    CRUD_VALUE_ACTION_DELETE,
+    CRUD_VALUE_ACTION_UPDATE,
+    DGMD_BLOCK_TYPE_ID,
+    DGMD_METADATA,
+    DGMD_PROPERTIES,
+    DGMD_TYPE,
+    DGMD_VALUE
 } from 'constants.dgmd.cc';
 import {
-  isNil,
-  isObject
+    isNil,
+    isObject
 } from 'lodash-es';
 import {
-  useCallback,
-  useEffect,
-  useRef,
-  useState
+    useCallback,
+    useEffect,
+    useRef,
+    useState
 } from 'react';
 
 import {
-  getNotionDataDb,
-  getNotionDataPage,
-  getNotionDataPages,
-  isNotionDataLive,
-  spliceNotionPage
+    getNotionDataDb,
+    getNotionDataPage,
+    getNotionDataPages,
+    isNotionDataLive,
+    spliceNotionPage
 } from './dataUtils.js';
 import {
-  mmMetaToNotionBlock,
-  mmPropToNotionBlock,
-  searchPages,
-  sortPages
+    mmMetaToNotionBlock,
+    mmPropToNotionBlock,
+    searchPages,
+    sortPages
 } from './pageUtils.js';
 import {
-  uniqueKey
+    uniqueKey
 } from './utils.js';
 
 export const useNotionData = url => {
@@ -73,9 +73,9 @@ export const useNotionData = url => {
       return false;
     }
 
-    const pgPropData = newPages[QUERY_RESPONSE_KEY_DATA_PROPERTIES];
+    const pgPropData = newPages[DGMD_PROPERTIES];
     const pgPropDatas = isObject(pgPropData) ? pgPropData : {};
-    const pgMetaData = newPages[QUERY_RESPONSE_KEY_DATA_METADATA];
+    const pgMetaData = newPages[DGMD_METADATA];
     const pgMetaDatas = isObject( pgMetaData ) ? pgMetaData : {};
 
     if (isNotionDataLive(notionData)) {
@@ -108,13 +108,13 @@ export const useNotionData = url => {
         const x = structuredClone( notionData );
 
         const uId = uniqueKey();
-        pgMetaDatas[QUERY_RESPONSE_KEY_BLOCK_ID] = {
-          [QUERY_RESPONSE_KEY_DATA_TYPE]: QUERY_RESPONSE_KEY_BLOCK_ID,
-          [QUERY_RESPONSE_KEY_DATA_VALUE]: uId
+        pgMetaDatas[DGMD_BLOCK_TYPE_ID] = {
+          [DGMD_TYPE]: DGMD_BLOCK_TYPE_ID,
+          [DGMD_VALUE]: uId
         };
         const page = {
-          [QUERY_RESPONSE_KEY_DATA_PROPERTIES]: pgPropDatas,
-          [QUERY_RESPONSE_KEY_DATA_METADATA]: pgMetaDatas
+          [DGMD_PROPERTIES]: pgPropDatas,
+          [DGMD_METADATA]: pgMetaDatas
         };
         const xPgs = getNotionDataPages( x, dbId );
         xPgs.unshift( page );
@@ -146,9 +146,9 @@ export const useNotionData = url => {
     }
     const pgId = pgIds[0];
     const pgUpdate = update[dbId][pgId];
-    const pgUpdateMeta = pgUpdate[QUERY_RESPONSE_KEY_DATA_METADATA];
+    const pgUpdateMeta = pgUpdate[DGMD_METADATA];
     const pgUpdateMetas = isObject( pgUpdateMeta ) ? pgUpdateMeta : {};
-    const pgUpdateProp = pgUpdate[QUERY_RESPONSE_KEY_DATA_PROPERTIES];
+    const pgUpdateProp = pgUpdate[DGMD_PROPERTIES];
     const pgUpdateProps = isObject( pgUpdateProp ) ? pgUpdateProp : {};
     
     if (isNotionDataLive(notionData)) {
@@ -181,12 +181,12 @@ export const useNotionData = url => {
         const x = structuredClone( d );
         const xpg = getNotionDataPage( x, dbId, pgId );
 
-        const xpgMetas = xpg[QUERY_RESPONSE_KEY_DATA_METADATA];
+        const xpgMetas = xpg[DGMD_METADATA];
         for (const [key, value] of Object.entries(pgUpdateMetas)) {
           xpgMetas[key] = value;
         }
 
-        const xpgProps = xpg[QUERY_RESPONSE_KEY_DATA_PROPERTIES];
+        const xpgProps = xpg[DGMD_PROPERTIES];
         for (const [key, value] of Object.entries(pgUpdateProps)) {
           xpgProps[key] = value;
         }
@@ -270,7 +270,7 @@ export const useNotionData = url => {
         //   const exsPrimaryPgs = getPrimaryPgs( newJsonObject );
         //   const newPrimaryPgs = getPrimaryPgs( crudJson );
         //   const merged = mergeLists( exsPrimaryPgs, newPrimaryPgs );
-        //   newJsonObject[NOTION_RESULT][NOTION_RESULT_QUERY_RESPONSE_KEY_PRIMARY_DATABASE][NOTION_RESULT_BLOCKS] = merged;
+        //   newJsonObject[NOTION_RESULT][NOTION_RESULT_DGMD_PRIMARY_DATABASE][NOTION_RESULT_BLOCKS] = merged;
 
         //   const relDbs = crudJson[NOTION_RESULT][NOTION_RESULT_RELATION_DATABASES];
         //   for (const relDb of relDbs) {
@@ -289,8 +289,8 @@ export const useNotionData = url => {
         //   }
 
         //   const cursorData = 
-        //     crudJson[NOTION_RESULT][NOTION_RESULT_QUERY_RESPONSE_KEY_PRIMARY_DATABASE][NOTION_RESULT_CURSOR_DATA];
-        //   newJsonObject[NOTION_RESULT][NOTION_RESULT_QUERY_RESPONSE_KEY_PRIMARY_DATABASE][NOTION_RESULT_CURSOR_DATA] = cursorData;
+        //     crudJson[NOTION_RESULT][NOTION_RESULT_DGMD_PRIMARY_DATABASE][NOTION_RESULT_CURSOR_DATA];
+        //   newJsonObject[NOTION_RESULT][NOTION_RESULT_DGMD_PRIMARY_DATABASE][NOTION_RESULT_CURSOR_DATA] = cursorData;
 
         //   update(newJsonObject);
         // }
@@ -325,7 +325,7 @@ export const useNotionData = url => {
               const clone = structuredClone( x );
               const dbBlocks = getNotionDataPages( clone, dbId );
               const idx = dbBlocks.findIndex( x => 
-                x[QUERY_RESPONSE_KEY_DATA_METADATA][QUERY_RESPONSE_KEY_BLOCK_ID][QUERY_RESPONSE_KEY_DATA_VALUE] === pgId );
+                x[DGMD_METADATA][DGMD_BLOCK_TYPE_ID][DGMD_VALUE] === pgId );
               if (idx >= 0) {
                 dbBlocks.splice( idx, 1, pg );
               }

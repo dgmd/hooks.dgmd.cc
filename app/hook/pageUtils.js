@@ -1,56 +1,61 @@
 import {
-  BLOCK_TYPE_CHECKBOX,
-  BLOCK_TYPE_CREATED_TIME,
-  BLOCK_TYPE_DATE,
-  BLOCK_TYPE_EMAIL,
-  BLOCK_TYPE_EMOJI,
-  BLOCK_TYPE_FILE_EXTERNAL,
-  BLOCK_TYPE_LAST_EDITED_TIME,
-  BLOCK_TYPE_MULTI_SELECT,
-  BLOCK_TYPE_NUMBER,
-  BLOCK_TYPE_PHONE_NUMBER,
-  BLOCK_TYPE_RELATION,
-  BLOCK_TYPE_RICH_TEXT,
-  BLOCK_TYPE_SELECT,
-  BLOCK_TYPE_STATUS,
-  BLOCK_TYPE_TITLE,
-  BLOCK_TYPE_URL,
-  DGMDCC_BLOCK_DATE_END,
-  DGMDCC_BLOCK_DATE_START,
-  QUERY_RESPONSE_KEY_BLOCK_ID,
-  QUERY_RESPONSE_KEY_DATA_METADATA,
-  QUERY_RESPONSE_KEY_DATA_PROPERTIES,
-  QUERY_RESPONSE_KEY_DATA_TYPE,
-  QUERY_RESPONSE_KEY_DATA_VALUE,
-  SEARCH_DEPTH,
-  SEARCH_INFO,
-  SEARCH_QUERY,
-  SEARCH_TYPE,
-  SEARCH_TYPE_SIMPLE
+  DGMD_BLOCK_TYPE_CHECKBOX,
+  DGMD_BLOCK_TYPE_CREATED_TIME,
+  DGMD_BLOCK_TYPE_DATE,
+  DGMD_BLOCK_TYPE_EMAIL,
+  DGMD_BLOCK_TYPE_EMOJI,
+  DGMD_BLOCK_TYPE_FILE_EXTERNAL,
+  DGMD_BLOCK_TYPE_ID,
+  DGMD_BLOCK_TYPE_LAST_EDITED_TIME,
+  DGMD_BLOCK_TYPE_MULTI_SELECT,
+  DGMD_BLOCK_TYPE_NUMBER,
+  DGMD_BLOCK_TYPE_PHONE_NUMBER,
+  DGMD_BLOCK_TYPE_RELATION,
+  DGMD_BLOCK_TYPE_RICH_TEXT,
+  DGMD_BLOCK_TYPE_SELECT,
+  DGMD_BLOCK_TYPE_STATUS,
+  DGMD_BLOCK_TYPE_TITLE,
+  DGMD_BLOCK_TYPE_URL,
+  DGMD_END_DATE,
+  DGMD_METADATA,
+  DGMD_PROPERTIES,
+  DGMD_START_DATE,
+  DGMD_TYPE,
+  DGMD_VALUE
 } from 'constants.dgmd.cc';
 import {
   isNil,
   remove
 } from 'lodash-es';
 
+import {
+  SEARCH_DEPTH,
+  SEARCH_INFO,
+  SEARCH_QUERY,
+  SEARCH_TYPE,
+  SEARCH_TYPE_SIMPLE
+} from './constants.js';
+
 export const getPageMetadata = page => {
-  return page[QUERY_RESPONSE_KEY_DATA_METADATA];
+  return page[DGMD_METADATA];
 };
 
 //todo - return keys, or keys & values
 export const getPageProperties = page => {
-  return page[QUERY_RESPONSE_KEY_DATA_PROPERTIES];
+  return page[DGMD_PROPERTIES];
 };
 
-export const getPageId = page => 
-  getPageMetadata(page)[QUERY_RESPONSE_KEY_BLOCK_ID][QUERY_RESPONSE_KEY_DATA_VALUE];
+export const getPageId = page => {
+  console.log( 'page', page );
+  return getPageMetadata(page)[DGMD_BLOCK_TYPE_ID][DGMD_VALUE];
+}
 
 //todo: getPropertyByPage & getPropertyByPageId & getPropertyKeysByPage & getPropertyKeysByPageId
 export const getPageProperty = (page, propertyKey) => {
   if (isNil(page)) {
     return null;
   }
-  if (!(QUERY_RESPONSE_KEY_DATA_PROPERTIES in page)) {
+  if (!(DGMD_PROPERTIES in page)) {
     return null;
   }
   const properties = getPageProperties(page);
@@ -58,10 +63,10 @@ export const getPageProperty = (page, propertyKey) => {
     return null;
   }
   const propertyObject = properties[propertyKey];
-  if (!(QUERY_RESPONSE_KEY_DATA_VALUE in propertyObject)) {
+  if (!(DGMD_VALUE in propertyObject)) {
     return null;
   }
-  return propertyObject[QUERY_RESPONSE_KEY_DATA_VALUE];
+  return propertyObject[DGMD_VALUE];
 };
 
 //
@@ -78,8 +83,8 @@ export const sortPages = (pgs, fields, directions) => {
         const bProps = getPageProperties(b);
         const aField = aProps[field];
         const bField = bProps[field];
-        const aVal = aField[QUERY_RESPONSE_KEY_DATA_VALUE];
-        const bVal = bField[QUERY_RESPONSE_KEY_DATA_VALUE];
+        const aVal = aField[DGMD_VALUE];
+        const bVal = bField[DGMD_VALUE];
         const aNil = isNil(aVal);
         const bNil = isNil(bVal);
         if (aNil && bNil) {
@@ -92,10 +97,10 @@ export const sortPages = (pgs, fields, directions) => {
           return 1 * direction;
         }
 
-        const aType = aField[QUERY_RESPONSE_KEY_DATA_TYPE];
-        if (aType === BLOCK_TYPE_DATE) {
-          const aDateVal = getTimeZoneNeutralDate( aVal[DGMDCC_BLOCK_DATE_START] );
-          const bDateVal = getTimeZoneNeutralDate( bVal[DGMDCC_BLOCK_DATE_START] );
+        const aType = aField[DGMD_TYPE];
+        if (aType === DGMD_BLOCK_TYPE_DATE) {
+          const aDateVal = getTimeZoneNeutralDate( aVal[DGMD_START_DATE] );
+          const bDateVal = getTimeZoneNeutralDate( bVal[DGMD_START_DATE] );
           if (aDateVal < bDateVal) {
             return -1 * direction;
           }
@@ -103,8 +108,8 @@ export const sortPages = (pgs, fields, directions) => {
             return 1 * direction;
           }
           //aDateVal === bDateVal, so...
-          const aEndDateVal = getTimeZoneNeutralDate( aVal[DGMDCC_BLOCK_DATE_END] );
-          const bEndDateVal = getTimeZoneNeutralDate( bVal[DGMDCC_BLOCK_DATE_END] );
+          const aEndDateVal = getTimeZoneNeutralDate( aVal[DGMD_END_DATE] );
+          const bEndDateVal = getTimeZoneNeutralDate( bVal[DGMD_END_DATE] );
           if (aEndDateVal < bEndDateVal) {
             return -1 * direction;
           }
@@ -112,7 +117,7 @@ export const sortPages = (pgs, fields, directions) => {
             return 1 * direction;
           }
         }
-        if (aType === BLOCK_TYPE_CHECKBOX) {
+        if (aType === DGMD_BLOCK_TYPE_CHECKBOX) {
           if (!aVal && bVal) {
             return -1 * direction;
           }
@@ -120,7 +125,7 @@ export const sortPages = (pgs, fields, directions) => {
             return 1 * direction;
           }
         }
-        if (aType === BLOCK_TYPE_MULTI_SELECT) {
+        if (aType === DGMD_BLOCK_TYPE_MULTI_SELECT) {
           const maxLen = Math.max( aVal.length, bVal.length );
           for (let i = 0; i < maxLen; i++) {
             const aValI = aVal[i] || '';
@@ -158,9 +163,9 @@ export const searchPages = ( pgs, searchObj ) => {
   const simpleSearchPage = ( 
     pg, searchObj, searchedPgsMap, searchTracker, depth ) => {
 
-    const pgMetas = pg[QUERY_RESPONSE_KEY_DATA_METADATA];
-    const pgProps = pg[QUERY_RESPONSE_KEY_DATA_PROPERTIES];
-    const pgId = pgMetas[QUERY_RESPONSE_KEY_BLOCK_ID][QUERY_RESPONSE_KEY_DATA_VALUE];
+    const pgMetas = pg[DGMD_METADATA];
+    const pgProps = pg[DGMD_PROPERTIES];
+    const pgId = pgMetas[DGMD_BLOCK_TYPE_ID][DGMD_VALUE];
 
     const searchInfo = searchObj[SEARCH_INFO];
     const query = searchInfo[SEARCH_QUERY].toLowerCase();
@@ -172,17 +177,17 @@ export const searchPages = ( pgs, searchObj ) => {
 
     for (const pgKey of pgKeys) {
       const pgProp = pgProps[pgKey];
-      const pgVal = pgProp[QUERY_RESPONSE_KEY_DATA_VALUE];
+      const pgVal = pgProp[DGMD_VALUE];
       if (!isNil(pgVal)) {
-        const pgType = pgProp[QUERY_RESPONSE_KEY_DATA_TYPE];
-        if (pgType === BLOCK_TYPE_TITLE ||
-            pgType === BLOCK_TYPE_RICH_TEXT ||
-            pgType === BLOCK_TYPE_NUMBER ||
-            pgType === BLOCK_TYPE_EMAIL ||
-            pgType === BLOCK_TYPE_PHONE_NUMBER ||
-            pgType === BLOCK_TYPE_URL ||
-            pgType === BLOCK_TYPE_SELECT ||
-            pgType === BLOCK_TYPE_STATUS) {
+        const pgType = pgProp[DGMD_TYPE];
+        if (pgType === DGMD_BLOCK_TYPE_TITLE ||
+            pgType === DGMD_BLOCK_TYPE_RICH_TEXT ||
+            pgType === DGMD_BLOCK_TYPE_NUMBER ||
+            pgType === DGMD_BLOCK_TYPE_EMAIL ||
+            pgType === DGMD_BLOCK_TYPE_PHONE_NUMBER ||
+            pgType === DGMD_BLOCK_TYPE_URL ||
+            pgType === DGMD_BLOCK_TYPE_SELECT ||
+            pgType === DGMD_BLOCK_TYPE_STATUS) {
           
           const pgValLower = pgVal.toString().toLowerCase();
           if ( pgValLower.indexOf( query ) >= 0 ) {
@@ -190,7 +195,7 @@ export const searchPages = ( pgs, searchObj ) => {
               return true;
           }
         }
-        else if (pgType === BLOCK_TYPE_MULTI_SELECT) {
+        else if (pgType === DGMD_BLOCK_TYPE_MULTI_SELECT) {
           for (const msVal of pgVal) {
             const msValLower = msVal.toString().toLowerCase();
             if (msValLower.indexOf( query ) >= 0) {
@@ -204,10 +209,10 @@ export const searchPages = ( pgs, searchObj ) => {
 
     for (const pgKey of pgKeys) {
       const pgProp = pgProps[pgKey];
-      const pgVal = pgProp[QUERY_RESPONSE_KEY_DATA_VALUE];
+      const pgVal = pgProp[DGMD_VALUE];
       if (!isNil(pgVal)) {
-        const pgType = pgProp[QUERY_RESPONSE_KEY_DATA_TYPE];
-        if (pgType === BLOCK_TYPE_RELATION) {
+        const pgType = pgProp[DGMD_TYPE];
+        if (pgType === DGMD_BLOCK_TYPE_RELATION) {
           for (const relPgObj of pgVal) {
             const relPgId = relPgObj['PAGE_ID'];
             if (!searchTracker.allSearched.includes( relPgId )) {
@@ -245,8 +250,8 @@ export const searchPages = ( pgs, searchObj ) => {
       }
 
       const siInclude = si[SEARCH_INCLUDE];
-      const pgVal = pgData[siField][QUERY_RESPONSE_KEY_DATA_VALUE];
-      const pgType = pgData[siField][QUERY_RESPONSE_KEY_DATA_TYPE];
+      const pgVal = pgData[siField][DGMD_VALUE];
+      const pgType = pgData[siField][DGMD_TYPE];
 
       const siQuery = si[SEARCH_QUERY];
       const nilSiQuery = isNil(siQuery);
@@ -258,14 +263,14 @@ export const searchPages = ( pgs, searchObj ) => {
         break;
       }
 
-      if (pgType === BLOCK_TYPE_TITLE ||
-          pgType === BLOCK_TYPE_RICH_TEXT ||
-          pgType === BLOCK_TYPE_NUMBER ||
-          pgType === BLOCK_TYPE_EMAIL ||
-          pgType === BLOCK_TYPE_PHONE_NUMBER ||
-          pgType === BLOCK_TYPE_URL ||
-          pgType === BLOCK_TYPE_SELECT ||
-          pgType === BLOCK_TYPE_STATUS) {
+      if (pgType === DGMD_BLOCK_TYPE_TITLE ||
+          pgType === DGMD_BLOCK_TYPE_RICH_TEXT ||
+          pgType === DGMD_BLOCK_TYPE_NUMBER ||
+          pgType === DGMD_BLOCK_TYPE_EMAIL ||
+          pgType === DGMD_BLOCK_TYPE_PHONE_NUMBER ||
+          pgType === DGMD_BLOCK_TYPE_URL ||
+          pgType === DGMD_BLOCK_TYPE_SELECT ||
+          pgType === DGMD_BLOCK_TYPE_STATUS) {
         
         const siQueryLower = siQuery.toLowerCase();
         const pgValLower = pgVal.toString().toLowerCase();
@@ -275,7 +280,7 @@ export const searchPages = ( pgs, searchObj ) => {
           break;
         }
       }
-      else if (pgType === BLOCK_TYPE_MULTI_SELECT) {
+      else if (pgType === DGMD_BLOCK_TYPE_MULTI_SELECT) {
         const siQuery = si[SEARCH_QUERY];
         const siQueryLower = siQuery.toLowerCase();
         let hasMulti = false;
@@ -290,7 +295,7 @@ export const searchPages = ( pgs, searchObj ) => {
           break;
         }
       }
-      else if (pgType === BLOCK_TYPE_RELATION) {
+      else if (pgType === DGMD_BLOCK_TYPE_RELATION) {
         siRels.push( si );
       }
     }
@@ -302,7 +307,7 @@ export const searchPages = ( pgs, searchObj ) => {
     pgClears.length = 0;
     for (const si of siRels) {
       const siField = si[SEARCH_FIELD];
-      const pgVal = pgProps[siField][QUERY_RESPONSE_KEY_DATA_VALUE];
+      const pgVal = pgProps[siField][DGMD_VALUE];
       for (const relPgObj of pgVal) {
         const relPgId = relPgObj['PAGE_ID'];
         const relDbId = relPgObj['DATABASE_ID'];
@@ -341,22 +346,22 @@ export const searchPages = ( pgs, searchObj ) => {
 //  todo --> move this to the server
 //
 export const mmPropToNotionBlock = ( block ) => {
-  const type = block[QUERY_RESPONSE_KEY_DATA_TYPE];
-  const value = block[QUERY_RESPONSE_KEY_DATA_VALUE];
+  const type = block[DGMD_TYPE];
+  const value = block[DGMD_VALUE];
 
-  if ([BLOCK_TYPE_CREATED_TIME, BLOCK_TYPE_LAST_EDITED_TIME].includes( type )) {
+  if ([DGMD_BLOCK_TYPE_CREATED_TIME, DGMD_BLOCK_TYPE_LAST_EDITED_TIME].includes( type )) {
     return null;
   }
 
-  if (BLOCK_TYPE_DATE === type) {
-    const startDateValue = new Date( value[DGMDCC_BLOCK_DATE_START] );
+  if (DGMD_BLOCK_TYPE_DATE === type) {
+    const startDateValue = new Date( value[DGMD_START_DATE] );
     if (isFinite(startDateValue)) {
       const dateObj = {
-        [DGMDCC_BLOCK_DATE_START]: startDateValue.toISOString()
+        [DGMD_START_DATE]: startDateValue.toISOString()
       };
-      const endDateValue = new Date( value[DGMDCC_BLOCK_DATE_END] );
+      const endDateValue = new Date( value[DGMD_END_DATE] );
       if (isFinite(endDateValue)) {
-        dateObj[DGMDCC_BLOCK_DATE_END] = endDateValue.toISOString();
+        dateObj[DGMD_END_DATE] = endDateValue.toISOString();
       }
       return {
         [type]: dateObj
@@ -364,7 +369,7 @@ export const mmPropToNotionBlock = ( block ) => {
     }
   }
 
-  if ([BLOCK_TYPE_TITLE, BLOCK_TYPE_RICH_TEXT].includes( type )) {
+  if ([DGMD_BLOCK_TYPE_TITLE, DGMD_BLOCK_TYPE_RICH_TEXT].includes( type )) {
     const stringValue = String( value );
     return {
       [type]: [ {
@@ -375,14 +380,14 @@ export const mmPropToNotionBlock = ( block ) => {
     };
   }
 
-  if ([BLOCK_TYPE_PHONE_NUMBER, BLOCK_TYPE_URL, BLOCK_TYPE_EMAIL].includes( type )) {
+  if ([DGMD_BLOCK_TYPE_PHONE_NUMBER, DGMD_BLOCK_TYPE_URL, DGMD_BLOCK_TYPE_EMAIL].includes( type )) {
     const stringValue = String( value );
     return {
       [type]: stringValue
     };
   }
 
-  if (type === BLOCK_TYPE_SELECT || type === BLOCK_TYPE_STATUS) {
+  if (type === DGMD_BLOCK_TYPE_SELECT || type === DGMD_BLOCK_TYPE_STATUS) {
     const stringValue = String( value );
     return {
       [type]: {
@@ -390,7 +395,7 @@ export const mmPropToNotionBlock = ( block ) => {
       }
     };
   }
-  if (type === BLOCK_TYPE_NUMBER) {
+  if (type === DGMD_BLOCK_TYPE_NUMBER) {
     const numValue = Number( value );
     if (isFinite(numValue)) {
       return {
@@ -398,7 +403,7 @@ export const mmPropToNotionBlock = ( block ) => {
       };
     }
   }
-  if (type === BLOCK_TYPE_MULTI_SELECT) {
+  if (type === DGMD_BLOCK_TYPE_MULTI_SELECT) {
     if (Array.isArray(value)) {
       const selects = value.map( v => {
         return {
@@ -411,14 +416,14 @@ export const mmPropToNotionBlock = ( block ) => {
       };
     }
   }
-  if (type === BLOCK_TYPE_CHECKBOX) {
+  if (type === DGMD_BLOCK_TYPE_CHECKBOX) {
     const booleanValue = deriveBoolean( value );
     return {
       [type]: booleanValue
     };
   }
   // #https://developers.notion.com/reference/page-property-values#relation
-  if (type === BLOCK_TYPE_RELATION) {
+  if (type === DGMD_BLOCK_TYPE_RELATION) {
     if (Array.isArray(value)) {
 
       if (value.every( v => typeof v === 'string' )) {
@@ -440,14 +445,14 @@ export const mmPropToNotionBlock = ( block ) => {
 };
   
 export const mmMetaToNotionBlock = ( block ) => {
-  const type = block[QUERY_RESPONSE_KEY_DATA_TYPE];
-  const value = block[QUERY_RESPONSE_KEY_DATA_VALUE];
-  if (type === BLOCK_TYPE_EMOJI) {
+  const type = block[DGMD_TYPE];
+  const value = block[DGMD_VALUE];
+  if (type === DGMD_BLOCK_TYPE_EMOJI) {
     return {
       [type]: value,
     }
   }
-  if (type === BLOCK_TYPE_FILE_EXTERNAL) {
+  if (type === DGMD_BLOCK_TYPE_FILE_EXTERNAL) {
     return {
       "type": type,
       "external": {
@@ -465,7 +470,7 @@ export const mergeMmPageBlockLists = (existingList, incomingList) => {
   if (isNil(incomingList)) {
     return existingList;
   }
-  const getId = obj => getPageMetadata(obj)[QUERY_RESPONSE_KEY_BLOCK_ID][QUERY_RESPONSE_KEY_DATA_VALUE];
+  const getId = obj => getPageMetadata(obj)[DGMD_BLOCK_TYPE_ID][DGMD_VALUE];
 
   const mergedList = [...existingList, ...incomingList.reduce((acc, obj) => {
     const existingIndex = existingList.findIndex(

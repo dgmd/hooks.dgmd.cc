@@ -1,17 +1,17 @@
 import {
-  QUERY_RESPONSE_KEY_DATA_METADATA,
-  QUERY_RESPONSE_KEY_DATA_PROPERTIES
+    DGMD_METADATA,
+    DGMD_PROPERTIES
 } from 'constants.dgmd.cc';
 import {
-  useLayoutEffect,
-  useRef,
-  useState
+    useLayoutEffect,
+    useRef,
+    useState
 } from 'react';
 
 import {
-  getTextAreaStyle,
-  linkStyle,
-  sectionStyle
+    getTextAreaStyle,
+    linkStyle,
+    sectionStyle
 } from "./Look";
 
 export const UpdateField = ({dbId, pageId, onUpdate}) => {
@@ -26,8 +26,8 @@ export const UpdateField = ({dbId, pageId, onUpdate}) => {
         return x;
       }
       return JSON.stringify( {
-        [QUERY_RESPONSE_KEY_DATA_PROPERTIES]: {},
-        [QUERY_RESPONSE_KEY_DATA_METADATA]: {}
+        [DGMD_PROPERTIES]: {},
+        [DGMD_METADATA]: {}
       }, null, 2 );
     } );
   }, [
