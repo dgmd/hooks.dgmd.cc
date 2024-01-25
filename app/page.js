@@ -8,7 +8,8 @@ import {
   getNotionDataPages,
   getNotionDataPrimaryDbId,
   isNotionDataLive,
-  isNotionDataLoaded
+  isNotionDataLoaded,
+  isNotionDataValid
 } from './hook/dataUtils.js';
 import {
   useNotionData
@@ -53,6 +54,9 @@ export default function Home() {
 
   if (!isNotionDataLoaded(notionData)) {
     return (<div>loading...</div>);
+  }
+  if (!isNotionDataValid(notionData)) {
+    return (<div>corrupt data</div>);
   }
 
   const dbId = getNotionDataPrimaryDbId( notionData );

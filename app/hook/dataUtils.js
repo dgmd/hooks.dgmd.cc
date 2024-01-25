@@ -9,6 +9,7 @@ import {
   DGMD_PRIMARY_DATABASE,
   DGMD_PROPERTIES,
   DGMD_RELATION_DATABASES,
+  DGMD_RELATION_PAGE_ID,
   DGMD_TYPE,
   DGMD_VALUE
 } from 'constants.dgmd.cc';
@@ -19,10 +20,18 @@ import {
 import {
   DGMD_DATA,
   DGMD_LIVE_DATA,
+  DGMD_VALID_DATA,
 } from './constants.js';
 
 export const isNotionDataLoaded = (jsonObject) => {
   return !isNil( jsonObject );
+};
+
+export const isNotionDataValid = (jsonObject) => {
+  if (isNotionDataLoaded(jsonObject)) {
+    return jsonObject[DGMD_VALID_DATA];
+  }
+  return false;
 };
 
 export const isNotionDataLive = (jsonObject) => {
@@ -57,8 +66,6 @@ export const getNotionDataRelationDbIds = (jsonObject) => {
   
 export const getNotionDataDb = (jsonObject, dbId) => {
   if (isNotionDataLoaded(jsonObject)) {
-    console.log( 'data', jsonObject, '??', DGMD_DATA, 'dbId', dbId );
-
     const job = jsonObject[DGMD_DATA];
 
     const primary = job[DGMD_PRIMARY_DATABASE];
@@ -180,7 +187,7 @@ export const spliceNotionPage = (notionData, pgId) => {
         if (value[DGMD_TYPE] === DGMD_BLOCK_TYPE_RELATION) {
           const relValue = value[DGMD_VALUE];
           const relIdx = relValue.findIndex( x => 
-            x['PAGE_ID'] === pgId );
+            x[DGMD_RELATION_PAGE_ID] === pgId );
           if (relIdx >= 0) {
             relValue.splice( relIdx, 1 );
           }

@@ -35,6 +35,7 @@ import {
   DGMD_DATA,
   DGMD_FILTERED_DATA,
   DGMD_LIVE_DATA,
+  DGMD_VALID_DATA
 } from './constants.js';
 import {
   getNotionDataDb,
@@ -259,6 +260,7 @@ export const useNotionData = url => {
         delete parsedJsonObject[PROTO_RESPONSE_KEY_SNAPSHOT_TIMESTAMP];
         parsedJsonObject[DGMD_DATA] = parsedJsonObject[QUERY_RESPONSE_KEY_RESULT];
         delete parsedJsonObject[QUERY_RESPONSE_KEY_RESULT];
+        parsedJsonObject[DGMD_VALID_DATA] = true;
 
         rUpdating.current = false;
         setNotionData( x => parsedJsonObject );
@@ -270,7 +272,9 @@ export const useNotionData = url => {
         console.log( err );
         rUpdating.current = false;
         setNotionData( x => {
-          return {};
+          return {
+            [DGMD_VALID_DATA]: false,
+          };
         } );
       }
     }
@@ -289,7 +293,6 @@ export const useNotionData = url => {
     if (rUpdating.current) {
       return;
     }
-    console.log( 'SEARCH AND SORT' );
     setFilteredNotionData( x => searchAndSortData(
       notionData, searchObj, sortObj
     ) );
@@ -422,7 +425,6 @@ export const useNotionData = url => {
 };
 
 const searchAndSortData = ( jsonObject, search, sort ) => {
-  console.log( 'jsonObject', jsonObject );
   const y = {
     [DGMD_FILTERED_DATA]: true,
     [DGMD_LIVE_DATA]: jsonObject[DGMD_LIVE_DATA],
@@ -432,15 +434,12 @@ const searchAndSortData = ( jsonObject, search, sort ) => {
   //search
   const searchEntries = isNil(search) ? [] : Object.entries(search);
   const sortEntries = isNil(sort) ? [] : Object.entries(sort);
-  for (const [dbId, searchObj] of searchEntries) {
-    console.log( 'dbId1', dbId, searchObj );
-    const pgs = getNotionDataPages( y, dbId );
-    searchPages( pgs, searchObj );
+  for (const [searchDbId, searchObj] of searchEntries) {
+    searchPages( y, searchDbId, searchObj );
 
     //sort
-    for (const [dbId, sortRules] of sortEntries) {
-      console.log( 'dbId2', dbId, sortRules );
-      const spgs = getNotionDataPages( y, dbId );
+    for (const [sortDbId, sortRules] of sortEntries) {
+      const spgs = getNotionDataPages( y, sortDbId );
       const fields = isArray(sortRules.fields) ? sortRules.fields : [];
       const directions = isArray(sortRules.directions) ? sortRules.directions : [];
       sortPages( spgs, fields, directions );

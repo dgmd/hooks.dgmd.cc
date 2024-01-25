@@ -5,6 +5,9 @@ import {
   DGMD_BLOCK_TYPE_EMAIL,
   DGMD_BLOCK_TYPE_EMOJI,
   DGMD_BLOCK_TYPE_FILE_EXTERNAL,
+  DGMD_BLOCK_TYPE_FORMULA_BOOLEAN,
+  DGMD_BLOCK_TYPE_FORMULA_DATE,
+  DGMD_BLOCK_TYPE_FORMULA_STRING,
   DGMD_BLOCK_TYPE_ID,
   DGMD_BLOCK_TYPE_LAST_EDITED_TIME,
   DGMD_BLOCK_TYPE_MULTI_SELECT,
@@ -27,6 +30,7 @@ import {
   DGMD_VALUE
 } from 'constants.dgmd.cc';
 import {
+  at,
   isEmpty,
   isNil,
   remove
@@ -39,6 +43,10 @@ import {
   SEARCH_TYPE,
   SEARCH_TYPE_SIMPLE
 } from './constants.js';
+import {
+  getNotionDataPage,
+  getNotionDataPages
+} from './dataUtils.js';
 
 export const getPageMetadata = page => {
   return page[DGMD_METADATA];
@@ -54,7 +62,6 @@ export const getPage = pgId => {
 };
 
 export const getPageId = page => {
-  console.log( 'page', page );
   return getPageMetadata(page)[DGMD_BLOCK_TYPE_ID][DGMD_VALUE];
 }
 
@@ -106,6 +113,9 @@ export const sortPages = (pgs, fields, directions) => {
         }
 
         const aType = aField[DGMD_TYPE];
+
+        console.log( 'sort', aType );
+
         if (aType === DGMD_BLOCK_TYPE_DATE) {
           const aDateVal = getTimeZoneNeutralDate( aVal[DGMD_START_DATE] );
           const bDateVal = getTimeZoneNeutralDate( bVal[DGMD_START_DATE] );
@@ -166,8 +176,8 @@ export const sortPages = (pgs, fields, directions) => {
 //
 // SEARCH UTIL
 //
-export const searchPages = ( pgs, searchObj ) => {
-  if (isNil(searchObj) || isEmpty(pgs)) {
+export const searchPages = ( jsonObj, dbId, searchObj ) => {
+  if (isNil(jsonObj) || isNil(dbId) || isNil(searchObj)) {
     return;
   }
 
@@ -179,26 +189,35 @@ export const searchPages = ( pgs, searchObj ) => {
     const pgId = pgMetas[DGMD_BLOCK_TYPE_ID][DGMD_VALUE];
 
     const searchInfo = searchObj[SEARCH_INFO];
-    const query = searchInfo[SEARCH_QUERY].toLowerCase();
     const searchDepth = searchInfo[SEARCH_DEPTH];
     if (depth >= searchDepth) {
       return false;
     }
     const pgKeys = Object.keys( pgProps );
 
+    const query = searchInfo[SEARCH_QUERY].toLowerCase();
+    if (query.length === 0) {
+      return true;
+    }
+
     for (const pgKey of pgKeys) {
       const pgProp = pgProps[pgKey];
       const pgVal = pgProp[DGMD_VALUE];
       if (!isNil(pgVal)) {
         const pgType = pgProp[DGMD_TYPE];
-        if (pgType === DGMD_BLOCK_TYPE_TITLE ||
+
+        //todo: handle date and formula date
+        if (pgType === DGMD_BLOCK_TYPE_CHECKBOX ||
+            pgType === DGMD_BLOCK_TYPE_TITLE ||
             pgType === DGMD_BLOCK_TYPE_RICH_TEXT ||
             pgType === DGMD_BLOCK_TYPE_NUMBER ||
             pgType === DGMD_BLOCK_TYPE_EMAIL ||
             pgType === DGMD_BLOCK_TYPE_PHONE_NUMBER ||
             pgType === DGMD_BLOCK_TYPE_URL ||
             pgType === DGMD_BLOCK_TYPE_SELECT ||
-            pgType === DGMD_BLOCK_TYPE_STATUS) {
+            pgType === DGMD_BLOCK_TYPE_STATUS ||
+            pgType === DGMD_BLOCK_TYPE_FORMULA_STRING ||
+            pgType === DGMD_BLOCK_TYPE_FORMULA_BOOLEAN) {
           
           const pgValLower = pgVal.toString().toLowerCase();
           if ( pgValLower.indexOf( query ) >= 0 ) {
@@ -215,6 +234,11 @@ export const searchPages = ( pgs, searchObj ) => {
             }
           }
         }
+        else if (pgType === DGMD_BLOCK_TYPE_RELATION) {
+        }
+        else {
+          console.log( 'need to handle', pgType );
+        }
       }
     }
 
@@ -228,7 +252,7 @@ export const searchPages = ( pgs, searchObj ) => {
             const relPgId = relPgObj[DGMD_RELATION_PAGE_ID];
             if (!searchTracker.allSearched.includes( relPgId )) {
               const relDbId = relPgObj[DGMD_DATABASE_ID];
-              const relPg = getNotionDataPage( relDbId, relPgId );//func.getPage( relDbId, relPgId );
+              const relPg = getNotionDataPage( jsonObj, relDbId, relPgId );
               if (simpleSearchPage( relPg, searchObj, searchedPgsMap, searchTracker, depth + 1 )) {
                 return true;
               }
@@ -322,7 +346,7 @@ export const searchPages = ( pgs, searchObj ) => {
       for (const relPgObj of pgVal) {
         const relPgId = relPgObj[DGMD_RELATION_PAGE_ID];
         const relDbId = relPgObj[DGMD_RELATION_DATABASE_ID];
-        const relPg = func.getPage( relDbId, relPgId );
+        const relPg = getNotionDataPage( jsonObj, relDbId, relPgId );
         const s = complexSearchPage( relPg, si[SEARCH_QUERY], depth + 1 );
         if (s) {
           pgClears.length = 0;
@@ -340,6 +364,7 @@ export const searchPages = ( pgs, searchObj ) => {
 
   const searchedPgs = new Map();
   const simple = searchObj[SEARCH_TYPE] === SEARCH_TYPE_SIMPLE;
+  const pgs = getNotionDataPages( jsonObj, dbId );
   remove( pgs, pg => {
     const searchTracker = {
       allSearched: []
