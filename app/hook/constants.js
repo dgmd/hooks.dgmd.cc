@@ -2,24 +2,6 @@
 export const NOTION_QUERY = 'NOTION_QUERY';
 export const NOTION_DATABASE = 'NOTION_DATABASE';
 
-export const DGMD_BLOCK_TYPE_CREATED_TIME = 'created_time';
-export const DGMD_BLOCK_TYPE_LAST_EDITED_TIME = 'last_edited_time'
-export const DGMD_BLOCK_TYPE_EMAIL = 'email';
-export const DGMD_BLOCK_TYPE_PHONE_NUMBER = 'phone_number';
-export const DGMD_BLOCK_TYPE_URL = 'url';
-export const DGMD_BLOCK_TYPE_SELECT = 'select';
-export const DGMD_BLOCK_TYPE_STATUS = 'status';
-export const DGMD_BLOCK_TYPE_TITLE = 'title';
-export const DGMD_BLOCK_TYPE_RICH_TEXT = 'rich_text';
-export const DGMD_BLOCK_TYPE_NUMBER = 'number';
-export const DGMD_BLOCK_TYPE_MULTI_SELECT = 'multi_select';
-export const DGMD_BLOCK_TYPE_CHECKBOX = 'checkbox';
-export const DGMD_BLOCK_TYPE_DATE = 'date';
-export const DGMD_BLOCK_TYPE_EMOJI = 'emoji';
-export const DGMD_BLOCK_TYPE_FILE_EXTERNAL = 'external';
-export const DGMD_BLOCK_TYPE_RELATION = 'relation';
-
-
 export const SEARCH_TYPE = 'SEARCH_TYPE';
 export const SEARCH_TYPE_COMPLEX = 'SEARCH_TYPE_COMPLEX';
 export const SEARCH_TYPE_SIMPLE = 'SEARCH_TYPE_SIMPLE';
@@ -46,3 +28,9 @@ export const CRUD_ERROR = 'CRUD_ERROR';
 export const CRUD_RESULT_STATUS_SUCCESS = 'CRUD_RESULT_STATUS_SUCCESS';
 export const CRUD_RESULT_STATUS_FAILURE = 'CRUD_RESULT_STATUS_FAILURE';
 export const CRUD_RESULT_STATUS_PENDING = 'CRUD_RESULT_STATUS_PENDING';
+
+
+//KEYS FOR OUR DATA OBJECTS
+export const DGMD_FILTERED_DATA = 'DGMD_FILTERED_DATA';
+export const DGMD_LIVE_DATA = 'DGMD_LIVE_DATA';
+export const DGMD_DATA = 'DGMD_DATA';

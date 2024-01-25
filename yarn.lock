@@ -1443,11 +1443,11 @@ __metadata:
 
 "constants.dgmd.cc@file:../constants.dgmd.cc::locator=dgmdcc_react%40workspace%3A.":
   version: 0.1.0
-  resolution: "constants.dgmd.cc@file:../constants.dgmd.cc#../constants.dgmd.cc::hash=1f65ad&locator=dgmdcc_react%40workspace%3A."
+  resolution: "constants.dgmd.cc@file:../constants.dgmd.cc#../constants.dgmd.cc::hash=20cac1&locator=dgmdcc_react%40workspace%3A."
   dependencies:
     react: "npm:^18"
     react-dom: "npm:^18"
-  checksum: 508865c84a30fcaac2715758c5a2da9ef201d0e0d93be2dcdd08b367ebf2dee81a3432572664919ab7ad83cc8e1e6718d37406ae3d7007dc9b5038152246921a
+  checksum: 07df8fac4051caecd940750a4deb0de5bb9c761066633921e742e3e3b931bcba3b629c08905dbe98defc86f27c8c1880a203692782dc3f3034a5fd0b9f24fc19
   languageName: node
   linkType: hard
 

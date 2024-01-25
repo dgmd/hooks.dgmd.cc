@@ -4,60 +4,48 @@ import {
   DGMD_BLOCK_TYPE_RELATION,
   DGMD_CURSOR_DATA,
   DGMD_DATABASE_ID,
+  DGMD_DATABASE_TITLE,
   DGMD_METADATA,
   DGMD_PRIMARY_DATABASE,
   DGMD_PROPERTIES,
   DGMD_RELATION_DATABASES,
   DGMD_TYPE,
-  DGMD_VALUE,
-  PROTO_RESPONSE_KEY_SNAPSHOT_TIMESTAMP,
-  QUERY_RESPONSE_KEY_RESULT,
-  QUERY_RESPONSE_KEY_SUCCESS
+  DGMD_VALUE
 } from 'constants.dgmd.cc';
 import {
   isNil,
 } from 'lodash-es';
 
-// # # #
+import {
+  DGMD_DATA,
+  DGMD_LIVE_DATA,
+} from './constants.js';
+
 export const isNotionDataLoaded = (jsonObject) => {
   return !isNil( jsonObject );
 };
 
 export const isNotionDataLive = (jsonObject) => {
-  return isNil( jsonObject[PROTO_RESPONSE_KEY_SNAPSHOT_TIMESTAMP] );
-};
-  
-export const isNotionDataValid = (jsonObject) => {
-  if (!isNotionDataLoaded(jsonObject)) {
-    return false;
-  }
-  const liveData = isNotionDataLive(jsonObject);
-  return !( 
-    isNil( getNotionDataPrimaryDbId(jsonObject, liveData) ) && 
-    isNil( getNotionDataRelationDbIds(jsonObject, liveData) )
-  );
+  return isNil( jsonObject[DGMD_LIVE_DATA] );
 };
   
 export const getNotionDataPrimaryDbId = (jsonObject) => {
-  if (isNil(jsonObject)) {
-    return null;
+  if (isNotionDataLoaded(jsonObject)) {
+    try {
+      const job = jsonObject[DGMD_DATA];
+      return job[DGMD_PRIMARY_DATABASE][DGMD_DATABASE_ID];
+    }
+    catch( err ) {
+      console.log( err );
+    }
   }
-  try {
-    const liveData = isNotionDataLive(jsonObject);
-    const job = liveData ? jsonObject[QUERY_RESPONSE_KEY_RESULT] : jsonObject;
-    return job[DGMD_PRIMARY_DATABASE][DGMD_DATABASE_ID];
-  }
-  catch( err ) {
-    console.log( err );
-    return null;
-  }
+  return null;
 };
   
 export const getNotionDataRelationDbIds = (jsonObject) => {
-  if (!isNil(jsonObject)) {
+  if (isNotionDataLoaded(jsonObject)) {
     try {
-      const liveData = isNotionDataLive(jsonObject);
-      const job = liveData ? jsonObject[QUERY_RESPONSE_KEY_RESULT] : jsonObject;
+      const job = jsonObject[DGMD_DATA];
       return job[DGMD_RELATION_DATABASES].map( db => db[DGMD_DATABASE_ID] );
     }
     catch( err ) {
@@ -68,24 +56,20 @@ export const getNotionDataRelationDbIds = (jsonObject) => {
 };
   
 export const getNotionDataDb = (jsonObject, dbId) => {
-  if (isNil(jsonObject)) {
-    return null;
-  }
-  const liveData = isNotionDataLive(jsonObject);
-  if (liveData && jsonObject[QUERY_RESPONSE_KEY_SUCCESS] === false) {
-    return null;
-  }
+  if (isNotionDataLoaded(jsonObject)) {
+    console.log( 'data', jsonObject, '??', DGMD_DATA, 'dbId', dbId );
 
-  const job = liveData ? jsonObject[QUERY_RESPONSE_KEY_RESULT] : jsonObject;
+    const job = jsonObject[DGMD_DATA];
 
-  const primary = job[DGMD_PRIMARY_DATABASE];
-  if (primary[DGMD_DATABASE_ID] === dbId) {
-    return primary;
-  }
-  for (var i=0; i<job[DGMD_RELATION_DATABASES].length; i++) {
-    const db = job[DGMD_RELATION_DATABASES][i];
-    if (db[DGMD_DATABASE_ID] === dbId) {
-      return db;
+    const primary = job[DGMD_PRIMARY_DATABASE];
+    if (primary[DGMD_DATABASE_ID] === dbId) {
+      return primary;
+    }
+    for (var i=0; i<job[DGMD_RELATION_DATABASES].length; i++) {
+      const db = job[DGMD_RELATION_DATABASES][i];
+      if (db[DGMD_DATABASE_ID] === dbId) {
+        return db;
+      }
     }
   }
   return null;
@@ -106,26 +90,26 @@ export const hasNotionDataNextCursorData = (jsonObject) => {
 };
   
 export const getDbIdByName = (jsonObject, name) => {
-  if (isNil(jsonObject)) {
-    return null;
-  }
-  try {
-    const primary = jsonObject[DGMD_PRIMARY_DATABASE];
-    if (primary[DGMDCC_DATABASE_TITLE] === name) {
-      return primary[DGMD_DATABASE_ID];
-    }
-    const rels = jsonObject[DGMD_RELATION_DATABASES];
-    for (var i=0; i<rels.length; i++) {
-      const db = rels[i];
-      if (db[DGMDCC_DATABASE_TITLE] === name) {
-        return db[DGMD_DATABASE_ID];
+  if (isNotionDataLoaded(jsonObject)) {
+    try {
+      const primary = jsonObject[DGMD_PRIMARY_DATABASE];
+      if (primary[DGMD_DATABASE_TITLE] === name) {
+        return primary[DGMD_DATABASE_ID];
       }
+      const rels = jsonObject[DGMD_RELATION_DATABASES];
+      for (var i=0; i<rels.length; i++) {
+        const db = rels[i];
+        if (db[DGMD_DATABASE_TITLE] === name) {
+          return db[DGMD_DATABASE_ID];
+        }
+      }
+      return null;
     }
-    return null;
+    catch( err ) {
+      return null;
+    }
   }
-  catch( err ) {
-    return null;
-  }
+  return null;
 };
 
 export const getNotionDataPage = (jsonObject, dbId, pageId) => {
@@ -146,19 +130,17 @@ export const getNotionDataPage = (jsonObject, dbId, pageId) => {
 };
 
 export const getNotionDataPages = (jsonObject, dbId) => {
-  if (isNil(jsonObject) || !isNotionDataValid(jsonObject)) {
-    return [];
+  if (isNotionDataLoaded(jsonObject)) {
+    try {
+      const db = getNotionDataDb( jsonObject, dbId );
+      const dbBlocks = db[DGMD_BLOCKS];
+      return dbBlocks;
+    }
+    catch( err ) {
+      console.log( err );
+    }
   }
-
-  try {
-    const db = getNotionDataDb( jsonObject, dbId );
-    const dbBlocks = db[DGMD_BLOCKS];
-    return dbBlocks;
-  }
-  catch( err ) {
-    console.log( err );
-    return [];
-  }
+  return [];
 };
 
 // const getNotionDataPageIdx = (dbBlocks, pageId) => {

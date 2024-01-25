@@ -16,14 +16,18 @@ import {
   DGMD_BLOCK_TYPE_STATUS,
   DGMD_BLOCK_TYPE_TITLE,
   DGMD_BLOCK_TYPE_URL,
+  DGMD_DATABASE_ID,
   DGMD_END_DATE,
   DGMD_METADATA,
   DGMD_PROPERTIES,
+  DGMD_RELATION_DATABASE_ID,
+  DGMD_RELATION_PAGE_ID,
   DGMD_START_DATE,
   DGMD_TYPE,
   DGMD_VALUE
 } from 'constants.dgmd.cc';
 import {
+  isEmpty,
   isNil,
   remove
 } from 'lodash-es';
@@ -43,6 +47,10 @@ export const getPageMetadata = page => {
 //todo - return keys, or keys & values
 export const getPageProperties = page => {
   return page[DGMD_PROPERTIES];
+};
+
+export const getPage = pgId => {
+
 };
 
 export const getPageId = page => {
@@ -159,6 +167,9 @@ export const sortPages = (pgs, fields, directions) => {
 // SEARCH UTIL
 //
 export const searchPages = ( pgs, searchObj ) => {
+  if (isNil(searchObj) || isEmpty(pgs)) {
+    return;
+  }
 
   const simpleSearchPage = ( 
     pg, searchObj, searchedPgsMap, searchTracker, depth ) => {
@@ -214,10 +225,10 @@ export const searchPages = ( pgs, searchObj ) => {
         const pgType = pgProp[DGMD_TYPE];
         if (pgType === DGMD_BLOCK_TYPE_RELATION) {
           for (const relPgObj of pgVal) {
-            const relPgId = relPgObj['PAGE_ID'];
+            const relPgId = relPgObj[DGMD_RELATION_PAGE_ID];
             if (!searchTracker.allSearched.includes( relPgId )) {
-              const relDbId = relPgObj['DATABASE_ID'];
-              const relPg = func.getPage( relDbId, relPgId );
+              const relDbId = relPgObj[DGMD_DATABASE_ID];
+              const relPg = getNotionDataPage( relDbId, relPgId );//func.getPage( relDbId, relPgId );
               if (simpleSearchPage( relPg, searchObj, searchedPgsMap, searchTracker, depth + 1 )) {
                 return true;
               }
@@ -309,8 +320,8 @@ export const searchPages = ( pgs, searchObj ) => {
       const siField = si[SEARCH_FIELD];
       const pgVal = pgProps[siField][DGMD_VALUE];
       for (const relPgObj of pgVal) {
-        const relPgId = relPgObj['PAGE_ID'];
-        const relDbId = relPgObj['DATABASE_ID'];
+        const relPgId = relPgObj[DGMD_RELATION_PAGE_ID];
+        const relDbId = relPgObj[DGMD_RELATION_DATABASE_ID];
         const relPg = func.getPage( relDbId, relPgId );
         const s = complexSearchPage( relPg, si[SEARCH_QUERY], depth + 1 );
         if (s) {

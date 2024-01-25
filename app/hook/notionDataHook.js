@@ -1,47 +1,56 @@
 import {
-    CRUD_PARAM_ACTION,
-    CRUD_PARAM_CREATE_BLOCK_ID,
-    CRUD_PARAM_CREATE_CHILDREN,
-    CRUD_PARAM_CREATE_META,
-    CRUD_PARAM_DELETE_BLOCK_ID,
-    CRUD_PARAM_UPDATE_BLOCK,
-    CRUD_PARAM_UPDATE_BLOCK_ID,
-    CRUD_PARAM_UPDATE_META,
-    CRUD_VALUE_ACTION_CREATE,
-    CRUD_VALUE_ACTION_DELETE,
-    CRUD_VALUE_ACTION_UPDATE,
-    DGMD_BLOCK_TYPE_ID,
-    DGMD_METADATA,
-    DGMD_PROPERTIES,
-    DGMD_TYPE,
-    DGMD_VALUE
+  CRUD_PARAM_ACTION,
+  CRUD_PARAM_CREATE_BLOCK_ID,
+  CRUD_PARAM_CREATE_CHILDREN,
+  CRUD_PARAM_CREATE_META,
+  CRUD_PARAM_DELETE_BLOCK_ID,
+  CRUD_PARAM_UPDATE_BLOCK,
+  CRUD_PARAM_UPDATE_BLOCK_ID,
+  CRUD_PARAM_UPDATE_META,
+  CRUD_VALUE_ACTION_CREATE,
+  CRUD_VALUE_ACTION_DELETE,
+  CRUD_VALUE_ACTION_UPDATE,
+  DGMD_BLOCK_TYPE_ID,
+  DGMD_METADATA,
+  DGMD_PROPERTIES,
+  DGMD_TYPE,
+  DGMD_VALUE,
+  PROTO_RESPONSE_KEY_SNAPSHOT_TIMESTAMP,
+  QUERY_RESPONSE_KEY_RESULT,
+  QUERY_RESPONSE_KEY_SUCCESS
 } from 'constants.dgmd.cc';
 import {
-    isNil,
-    isObject
+  isArray,
+  isNil,
+  isObject
 } from 'lodash-es';
 import {
-    useCallback,
-    useEffect,
-    useRef,
-    useState
+  useCallback,
+  useEffect,
+  useRef,
+  useState
 } from 'react';
 
 import {
-    getNotionDataDb,
-    getNotionDataPage,
-    getNotionDataPages,
-    isNotionDataLive,
-    spliceNotionPage
+  DGMD_DATA,
+  DGMD_FILTERED_DATA,
+  DGMD_LIVE_DATA,
+} from './constants.js';
+import {
+  getNotionDataDb,
+  getNotionDataPage,
+  getNotionDataPages,
+  isNotionDataLive,
+  spliceNotionPage
 } from './dataUtils.js';
 import {
-    mmMetaToNotionBlock,
-    mmPropToNotionBlock,
-    searchPages,
-    sortPages
+  mmMetaToNotionBlock,
+  mmPropToNotionBlock,
+  searchPages,
+  sortPages
 } from './pageUtils.js';
 import {
-    uniqueKey
+  uniqueKey
 } from './utils.js';
 
 export const useNotionData = url => {
@@ -50,14 +59,18 @@ export const useNotionData = url => {
   const [urlUpdateObj, setUrlUpdateObj] = useState( x => null );
 
   const [notionData, setNotionData] = useState( x => null );
-  const [filteredNotionData, setFilteredNotionData] = useState( x => null );
+  const [filteredNotionData, setFilteredNotionData] = useState( x => {
+    return {
+      [DGMD_FILTERED_DATA]: true
+    };
+  } );
 
   const rUpdating = useRef( false );
 
   const [searchObj, setSearchObj] = useState( x => null );
-  const rSearch = useRef( searchObj );
+  const rSearchObj = useRef( searchObj );
   const [sortObj, setSortObj] = useState( x => null );
-  const rSort = useRef( sortObj );
+  const rSortObj = useRef( sortObj );
 
   const handleCreate = useCallback ( (newPages) => {
     if (rUpdating.current) {
@@ -234,8 +247,24 @@ export const useNotionData = url => {
         const response = await fetch( url );
         const parsedJsonObject = await response.json( );
 
+        const validStatus = parsedJsonObject[QUERY_RESPONSE_KEY_SUCCESS];
+        if (isNil(validStatus) || !validStatus) {
+          throw new Error( 'invalid data' );
+        }
+
+        //claim this data as our own
+        delete parsedJsonObject[QUERY_RESPONSE_KEY_SUCCESS];
+        parsedJsonObject[DGMD_FILTERED_DATA] = false;
+        parsedJsonObject[DGMD_LIVE_DATA] = parsedJsonObject[PROTO_RESPONSE_KEY_SNAPSHOT_TIMESTAMP] || false;
+        delete parsedJsonObject[PROTO_RESPONSE_KEY_SNAPSHOT_TIMESTAMP];
+        parsedJsonObject[DGMD_DATA] = parsedJsonObject[QUERY_RESPONSE_KEY_RESULT];
+        delete parsedJsonObject[QUERY_RESPONSE_KEY_RESULT];
+
         rUpdating.current = false;
         setNotionData( x => parsedJsonObject );
+        setFilteredNotionData( x => searchAndSortData(
+          parsedJsonObject, rSearchObj.current, rSortObj.current
+        ) );
       }
       catch( err ) {
         console.log( err );
@@ -253,6 +282,21 @@ export const useNotionData = url => {
 
   }, [
     url
+  ] );
+
+  //update search and sort
+  useEffect( () => {
+    if (rUpdating.current) {
+      return;
+    }
+    console.log( 'SEARCH AND SORT' );
+    setFilteredNotionData( x => searchAndSortData(
+      notionData, searchObj, sortObj
+    ) );
+  }, [
+    searchObj,
+    sortObj,
+    notionData
   ] );
 
   //update live crud response
@@ -355,28 +399,14 @@ export const useNotionData = url => {
     urlUpdateObj
   ] );
 
-  //update search and sort
-  useEffect( () => {
-    if (rUpdating.current) {
-      return;
-    }
-    setFilteredNotionData( x => searchAndSortData(
-      notionData, searchObj, sortObj
-    ) );
-  }, [
-    searchObj,
-    sortObj,
-    notionData
-  ] );
-
   const setSearch = useCallback( searchObj => {
     setSearchObj( x => searchObj );
-    rSearch.current = searchObj;
+    rSearchObj.current = searchObj;
   } );
 
   const setSort = useCallback( sortObj => {
     setSortObj( x => sortObj );
-    rSort.current = sortObj;
+    rSortObj.current = sortObj;
   } );
 
   return {
@@ -392,32 +422,31 @@ export const useNotionData = url => {
 };
 
 const searchAndSortData = ( jsonObject, search, sort ) => {
-  const x = structuredClone( jsonObject );
+  console.log( 'jsonObject', jsonObject );
+  const y = {
+    [DGMD_FILTERED_DATA]: true,
+    [DGMD_LIVE_DATA]: jsonObject[DGMD_LIVE_DATA],
+    [DGMD_DATA]: structuredClone( jsonObject[DGMD_DATA] ),
+  };
 
   //search
   const searchEntries = isNil(search) ? [] : Object.entries(search);
-  for (const [dbId, searchObj] of searchEntries) {
-    const db = getNotionDataDb( x, dbId );
-    if (db) {
-      const pgs = getNotionDataPages( x, dbId );
-      searchPages( pgs, searchObj );
-    }
-  }
-
-  //sort
   const sortEntries = isNil(sort) ? [] : Object.entries(sort);
-  for (const [dbId, sortRules] of sortEntries) {
-    const db = getNotionDataDb( x, dbId );
-    if (db) {
-      const pgs = getNotionDataPages( x, dbId );
-      const fields = sortRules.fields;
-      const directions = sortRules.directions;
-      sortPages( pgs, fields, directions );
+  for (const [dbId, searchObj] of searchEntries) {
+    console.log( 'dbId1', dbId, searchObj );
+    const pgs = getNotionDataPages( y, dbId );
+    searchPages( pgs, searchObj );
+
+    //sort
+    for (const [dbId, sortRules] of sortEntries) {
+      console.log( 'dbId2', dbId, sortRules );
+      const spgs = getNotionDataPages( y, dbId );
+      const fields = isArray(sortRules.fields) ? sortRules.fields : [];
+      const directions = isArray(sortRules.directions) ? sortRules.directions : [];
+      sortPages( spgs, fields, directions );
     }
   }
 
-  Object.freeze( x );
-
-  return x;
+  Object.freeze( y );
+  return y;
 };
-
