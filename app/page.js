@@ -36,7 +36,9 @@ import {
 export default function Home() {
   const {
     setSearch,
+    hasSearch,
     setSort,
+    hasSort,
     handleCreate,
     handleUpdate,
     handleDelete,
@@ -60,7 +62,6 @@ export default function Home() {
   }
 
   const dbId = getNotionDataPrimaryDbId( notionData );
-  console.log( 'dbId', dbId );
 
   return (
 
@@ -84,11 +85,13 @@ export default function Home() {
       <SortField
         notionData={ notionData }
         onSort={ setSort }
+        hasSort={ hasSort }
       />
 
       <SearchField
         notionData={ notionData }
         onSearch={ setSearch }
+        hasSearch={ hasSearch }
       /> 
 
       <hr/>

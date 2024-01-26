@@ -15,13 +15,14 @@ export const sectionStyle = {
   margin: '10px',
   padding: '10px'
 };
-  
-export const getTextAreaStyle = error => {
+
+export const getTextAreaStyle = valid => {
   return {
-    border: `1px solid black`,
+    border: `2px solid`,
+    borderColor: valid ? '#000' : "#f00",
+    outlineColor: valid ? '#000' : '#f00',
     padding: '10px',
     margin: '10px',
-    backgroundColor: error ? '#FFCCCB' : '#fff',
     color: '#000'
   };
 };

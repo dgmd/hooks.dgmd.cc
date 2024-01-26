@@ -27,6 +27,7 @@ import {
 import {
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState
 } from 'react';
@@ -256,7 +257,7 @@ export const useNotionData = url => {
         //claim this data as our own
         delete parsedJsonObject[QUERY_RESPONSE_KEY_SUCCESS];
         parsedJsonObject[DGMD_FILTERED_DATA] = false;
-        parsedJsonObject[DGMD_LIVE_DATA] = parsedJsonObject[PROTO_RESPONSE_KEY_SNAPSHOT_TIMESTAMP] || false;
+        parsedJsonObject[DGMD_LIVE_DATA] = !isNil(parsedJsonObject[PROTO_RESPONSE_KEY_SNAPSHOT_TIMESTAMP]) || true;
         delete parsedJsonObject[PROTO_RESPONSE_KEY_SNAPSHOT_TIMESTAMP];
         parsedJsonObject[DGMD_DATA] = parsedJsonObject[QUERY_RESPONSE_KEY_RESULT];
         delete parsedJsonObject[QUERY_RESPONSE_KEY_RESULT];
@@ -344,7 +345,6 @@ export const useNotionData = url => {
 
         if (crudJson['result']) {
           const result = crudJson['result'];
-          console.log( 'result', result );
           if (result['delete']) {
               const delId = result['deleteId'];
               setNotionData( x => spliceNotionPage( x, delId ) );
@@ -363,7 +363,6 @@ export const useNotionData = url => {
             setNotionData( updateNotionData );
           }
           if (result['update']) {
-            console.log( 'result', result );
             const pg = result['page'];
             const dbId = result['dbId'];
             const pgId = result['pgId'];
@@ -412,9 +411,23 @@ export const useNotionData = url => {
     rSortObj.current = sortObj;
   } );
 
+  const hasSearch = useMemo( x => {
+    return !isNil(searchObj);
+  }, [
+    searchObj
+  ] );
+
+  const hasSort = useMemo( x => {
+    return !isNil(sortObj);
+  }, [
+    sortObj
+  ] );
+
   return {
     setSearch,
+    hasSearch,
     setSort,
+    hasSort,
     handleCreate,
     handleUpdate,
     handleDelete,
@@ -426,6 +439,7 @@ export const useNotionData = url => {
 
 const searchAndSortData = ( jsonObject, search, sort ) => {
   const y = {
+    [DGMD_VALID_DATA]: jsonObject[DGMD_VALID_DATA],
     [DGMD_FILTERED_DATA]: true,
     [DGMD_LIVE_DATA]: jsonObject[DGMD_LIVE_DATA],
     [DGMD_DATA]: structuredClone( jsonObject[DGMD_DATA] ),

@@ -61,7 +61,7 @@ export const CreateField = ({notionData, onCreate}) => {
               <textarea
                 rows={ 10 }
                 cols={ 30 }
-                style={ getTextAreaStyle( errorState ) }
+                style={ getTextAreaStyle( !errorState ) }
                 ref={ createTextAreaRef }
                 value={ createTerms ? createTerms : '' }
                 onChange={ e => {

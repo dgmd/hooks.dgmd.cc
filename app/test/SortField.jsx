@@ -15,13 +15,10 @@ import {
   sectionStyle
 } from './Look.js';
 
-export const SortField = ({notionData, onSort}) => {
+export const SortField = ({notionData, onSort, hasSort}) => {
 
   const sortTextAreaRef = useRef( null );
   const [sortTerms, setSortTerms] = useState( null );
-
-  const [errorState, setErrorState] = useState( x => false );
-
   const [open, setOpen] = useState( x => false );
 
   useLayoutEffect( () => {
@@ -55,7 +52,7 @@ export const SortField = ({notionData, onSort}) => {
         style={ headerStyle }
         onClick={ x => setOpen( x => !x ) }
       >
-        { open ? '⬇️' : '➡️' } SORT
+        { open ? '⬇️' : '➡️' } SORT (active:{ hasSort ? '✅' : '❌' })
       </div>
       {
         open ? (
@@ -63,12 +60,11 @@ export const SortField = ({notionData, onSort}) => {
             <textarea
               rows={ 10 }
               cols={ 30 }
-              style={ getTextAreaStyle( errorState ) }
+              style={ getTextAreaStyle( hasSort ) }
               ref={ sortTextAreaRef }
               value={ sortTerms ? sortTerms : '' }
               onChange={ e => {
                 setSortTerms( e.target.value );
-                setErrorState( x => false );
               } }
             />
             <div
@@ -78,11 +74,10 @@ export const SortField = ({notionData, onSort}) => {
                   const sortText = sortTextAreaRef.current.value;
                   const sortTextObj = JSON.parse( sortText );
                   onSort( sortTextObj );
-                  setErrorState( x => false );
                 }
                 catch( err ) {
+                  onSort( null );
                   console.log( err );
-                  setErrorState( x => true );
                 }
               } }
             >

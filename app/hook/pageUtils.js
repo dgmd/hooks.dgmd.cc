@@ -114,8 +114,6 @@ export const sortPages = (pgs, fields, directions) => {
 
         const aType = aField[DGMD_TYPE];
 
-        console.log( 'sort', aType );
-
         if (aType === DGMD_BLOCK_TYPE_DATE) {
           const aDateVal = getTimeZoneNeutralDate( aVal[DGMD_START_DATE] );
           const bDateVal = getTimeZoneNeutralDate( bVal[DGMD_START_DATE] );

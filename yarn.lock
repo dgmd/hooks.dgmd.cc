@@ -1443,11 +1443,11 @@ __metadata:
 
 "constants.dgmd.cc@file:../constants.dgmd.cc::locator=dgmdcc_react%40workspace%3A.":
   version: 0.1.0
-  resolution: "constants.dgmd.cc@file:../constants.dgmd.cc#../constants.dgmd.cc::hash=83f01e&locator=dgmdcc_react%40workspace%3A."
+  resolution: "constants.dgmd.cc@file:../constants.dgmd.cc#../constants.dgmd.cc::hash=25446b&locator=dgmdcc_react%40workspace%3A."
   dependencies:
     react: "npm:^18"
     react-dom: "npm:^18"
-  checksum: 6ec4c1ce3efd05a3fe434fcf83d53ecd2f4d86e6625cf5080564f847b959891cc3089dd6977bae5f972e38bb1b3781e0a0ac2f298959b6bf4937acb1a2103beb
+  checksum: a1c56ca83cbbf1c021a40dc70e91024ee664bc19ffe5fb5fd567c42856c38510442471f0aaf94ca2a4c00cc78dd67541686694dbb604f15dd2479eb582ee3227
   languageName: node
   linkType: hard
 
@@ -1514,6 +1514,15 @@ __metadata:
   version: 1.0.8
   resolution: "damerau-levenshtein@npm:1.0.8"
   checksum: 4c2647e0f42acaee7d068756c1d396e296c3556f9c8314bac1ac63ffb236217ef0e7e58602b18bb2173deec7ec8e0cac8e27cccf8f5526666b4ff11a13ad54a3
+  languageName: node
+  linkType: hard
+
+"date-fns-tz@npm:^2.0.0":
+  version: 2.0.0
+  resolution: "date-fns-tz@npm:2.0.0"
+  peerDependencies:
+    date-fns: ">=2.0.0"
+  checksum: 31cacb83c675ef8c2cf31d21c298ab6d74c5e975412dd804664d031ac0f2f03ed5bfb2a950fa15a321bbbcb90b833c300823fbceba0133680065a71894cc1170
   languageName: node
   linkType: hard
 
@@ -1638,6 +1647,7 @@ __metadata:
   dependencies:
     autoprefixer: "npm:10.4.15"
     constants.dgmd.cc: "file:../constants.dgmd.cc"
+    date-fns-tz: "npm:^2.0.0"
     eslint: "npm:8.49.0"
     eslint-config-next: "npm:13.4.19"
     import-sort: "npm:^6.0.0"

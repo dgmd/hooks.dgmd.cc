@@ -11,6 +11,7 @@
   "dependencies": {
     "autoprefixer": "10.4.15",
     "constants.dgmd.cc": "file:../constants.dgmd.cc",
+    "date-fns-tz": "^2.0.0",
     "eslint": "8.49.0",
     "eslint-config-next": "13.4.19",
     "import-sort": "^6.0.0",

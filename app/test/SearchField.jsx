@@ -22,11 +22,10 @@ import {
   sectionStyle
 } from './Look.js';
 
-export const SearchField = ({notionData, onSearch}) => {
+export const SearchField = ({notionData, onSearch, hasSearch}) => {
 
   const searchTextAreaRef = useRef( null );
   const [searchTerms, setSearchTerms] = useState( x => null );
-  const [errorState, setErrorState] = useState( x => false );
   const [open, setOpen] = useState( x => false );
 
   useLayoutEffect( () => {
@@ -62,7 +61,7 @@ export const SearchField = ({notionData, onSearch}) => {
         style={ headerStyle }
         onClick={ x => setOpen( x => !x ) }
       >
-        { open ? '⬇️' : '➡️' } SEARCH
+        { open ? '⬇️' : '➡️' } SEARCH (active:{ hasSearch ? '✅' : '❌' })
       </div>
       {
         open ? (
@@ -70,11 +69,10 @@ export const SearchField = ({notionData, onSearch}) => {
             <textarea
               rows={ 10 }
               cols={ 30 }
-              style={ getTextAreaStyle( errorState ) }
+              style={ getTextAreaStyle( hasSearch ) }
               ref={ searchTextAreaRef }
               value={ searchTerms ? searchTerms : '' }
               onChange={ e => {
-                setErrorState( x => false );
                 setSearchTerms( e.target.value );
               } }
             />
@@ -85,10 +83,9 @@ export const SearchField = ({notionData, onSearch}) => {
                   const searchText = searchTextAreaRef.current.value;
                   const searchTextObj = JSON.parse( searchText );
                   onSearch( searchTextObj );
-                  setErrorState( x => false );
                 }
                 catch( err ) {
-                  setErrorState( x => true );
+                  onSearch( null );
                   console.log( err );
                 }
               } }

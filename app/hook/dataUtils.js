@@ -35,11 +35,11 @@ export const isNotionDataValid = (jsonObject) => {
 };
 
 export const isNotionDataLive = (jsonObject) => {
-  return isNil( jsonObject[DGMD_LIVE_DATA] );
+  return jsonObject[DGMD_LIVE_DATA];
 };
   
 export const getNotionDataPrimaryDbId = (jsonObject) => {
-  if (isNotionDataLoaded(jsonObject)) {
+  if (isNotionDataValid(jsonObject)) {
     try {
       const job = jsonObject[DGMD_DATA];
       return job[DGMD_PRIMARY_DATABASE][DGMD_DATABASE_ID];
@@ -52,7 +52,7 @@ export const getNotionDataPrimaryDbId = (jsonObject) => {
 };
   
 export const getNotionDataRelationDbIds = (jsonObject) => {
-  if (isNotionDataLoaded(jsonObject)) {
+  if (isNotionDataValid(jsonObject)) {
     try {
       const job = jsonObject[DGMD_DATA];
       return job[DGMD_RELATION_DATABASES].map( db => db[DGMD_DATABASE_ID] );
@@ -65,7 +65,7 @@ export const getNotionDataRelationDbIds = (jsonObject) => {
 };
   
 export const getNotionDataDb = (jsonObject, dbId) => {
-  if (isNotionDataLoaded(jsonObject)) {
+  if (isNotionDataValid(jsonObject)) {
     const job = jsonObject[DGMD_DATA];
 
     const primary = job[DGMD_PRIMARY_DATABASE];
@@ -97,7 +97,7 @@ export const hasNotionDataNextCursorData = (jsonObject) => {
 };
   
 export const getDbIdByName = (jsonObject, name) => {
-  if (isNotionDataLoaded(jsonObject)) {
+  if (isNotionDataValid(jsonObject)) {
     try {
       const primary = jsonObject[DGMD_PRIMARY_DATABASE];
       if (primary[DGMD_DATABASE_TITLE] === name) {
@@ -137,7 +137,7 @@ export const getNotionDataPage = (jsonObject, dbId, pageId) => {
 };
 
 export const getNotionDataPages = (jsonObject, dbId) => {
-  if (isNotionDataLoaded(jsonObject)) {
+  if (isNotionDataValid(jsonObject)) {
     try {
       const db = getNotionDataDb( jsonObject, dbId );
       const dbBlocks = db[DGMD_BLOCKS];
