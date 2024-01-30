@@ -80,18 +80,21 @@ export default function Home() {
       <CreateField
         notionData={ notionData }
         onCreate={ handleCreate }
+        updating={ updating }
       />
 
       <SortField
         notionData={ notionData }
         onSort={ setSort }
         hasSort={ hasSort }
+        updating={ updating }
       />
 
       <SearchField
         notionData={ notionData }
         onSearch={ setSearch }
         hasSearch={ hasSearch }
+        updating={ updating }
       /> 
 
       <hr/>
@@ -104,6 +107,7 @@ export default function Home() {
               key={ pageId }
               dbId={ dbId }
               page={ page }
+              updating={ updating }
               handleDelete={ handleDelete }
               handleUpdate={ handleUpdate }
             />

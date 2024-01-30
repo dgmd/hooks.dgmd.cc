@@ -1,36 +1,45 @@
 import {
-    DGMD_METADATA,
-    DGMD_PROPERTIES
+  DGMD_DATABASE_ID,
+  DGMD_METADATA,
+  DGMD_PAGE_ID,
+  DGMD_PROPERTIES
 } from 'constants.dgmd.cc';
 import {
-    useLayoutEffect,
-    useRef,
-    useState
+  useLayoutEffect,
+  useRef,
+  useState
 } from 'react';
 
 import {
-    getTextAreaStyle,
-    linkStyle,
-    sectionStyle
+  getTextAreaStyle,
+  linkStyle,
+  sectionStyle
 } from "./Look";
 
-export const UpdateField = ({dbId, pageId, onUpdate}) => {
+export const UpdateField = ({dbId, pageId, onUpdate, updating}) => {
 
   const updateRef = useRef( null );
   const [sortTerms, setSortTerms] = useState( null );
-  const [errorState, setErrorState] = useState( x => false );
+  const [validState, setValidState] = useState( x => true );
 
   useLayoutEffect( () => {
     setSortTerms( x => {
       if (x) {
         return x;
       }
-      return JSON.stringify( {
+
+      const val = {
+        [DGMD_DATABASE_ID]: dbId,
+        [DGMD_PAGE_ID]: pageId,
         [DGMD_PROPERTIES]: {},
         [DGMD_METADATA]: {}
-      }, null, 2 );
+      };
+
+      return JSON.stringify( val, null, 2 );
     } );
   }, [
+    dbId,
+    pageId
   ] );
 
   return (
@@ -40,12 +49,12 @@ export const UpdateField = ({dbId, pageId, onUpdate}) => {
       <textarea
         rows={ 2 }
         cols={ 30 }
-        style={ getTextAreaStyle(errorState) }
+        style={ getTextAreaStyle( validState, updating ) }
         ref={ updateRef }
         value={ sortTerms ? sortTerms : '' }
         onChange={ x => {
           setSortTerms( x.target.value );
-          setErrorState( x => false );
+          setValidState( x => true );
         } }
       />
       <div
@@ -53,21 +62,17 @@ export const UpdateField = ({dbId, pageId, onUpdate}) => {
         onClick={ () => {
           try {
             const updateTerms = JSON.parse( updateRef.current.value );
-            const val = {
-              [dbId]: {
-                [pageId]: updateTerms
-              }
-            };
-            onUpdate( val );
-            setErrorState( x => false );
+            onUpdate( updateTerms );
+            setValidState( x => true );
           }
           catch (e) {
             console.log( e );
-            setErrorState( x => true );
+            setValidState( x => false );
           }
         } }
       >
         UPDATE PAGE
+        { updating ? '🔄' : '' }
       </div>
     </div>
   );

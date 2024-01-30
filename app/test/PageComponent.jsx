@@ -15,7 +15,7 @@ import {
   UpdateField
 } from './UpdateField.jsx';
 
-export const PageComponent = ({page, dbId, handleDelete, handleUpdate}) => {
+export const PageComponent = ({page, dbId, handleDelete, handleUpdate, updating}) => {
 
   const [ open, setOpen ] = useState( x => false );
 
@@ -58,6 +58,7 @@ export const PageComponent = ({page, dbId, handleDelete, handleUpdate}) => {
             onUpdate={ handleUpdate }
             dbId={ dbId }
             pageId={ pageId }
+            updating={ updating }
           />
           </div>
           </div>

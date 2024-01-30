@@ -1,4 +1,7 @@
 import {
+  DGMD_DATABASE_ID
+} from 'constants.dgmd.cc';
+import {
   Fragment,
   useLayoutEffect,
   useRef,
@@ -6,7 +9,7 @@ import {
 } from 'react';
 
 import {
-  getNotionDataAllDbIds
+  getNotionDataPrimaryDbId
 } from '../hook/dataUtils.js';
 import {
   getTextAreaStyle,
@@ -15,7 +18,7 @@ import {
   sectionStyle
 } from './Look.js';
 
-export const CreateField = ({notionData, onCreate}) => {
+export const CreateField = ({notionData, onCreate, updating}) => {
   
     const createTextAreaRef = useRef( null );
     const [createTerms, setCreateTerms] = useState( null );
@@ -33,13 +36,11 @@ export const CreateField = ({notionData, onCreate}) => {
         if (x) {
           return x;
         }
-        const dbIds = getNotionDataAllDbIds( notionData );
-        const sortObj = {};
-        for (const dbId of dbIds) {
-          sortObj[dbId] = {
-          };
-        }
-        return JSON.stringify( sortObj, null, 2 );
+        const dbId = getNotionDataPrimaryDbId( notionData );
+        const createObj = {
+          [DGMD_DATABASE_ID]: dbId,
+        };
+        return JSON.stringify( createObj, null, 2 );
       } );
     }, [
       notionData
@@ -61,7 +62,7 @@ export const CreateField = ({notionData, onCreate}) => {
               <textarea
                 rows={ 10 }
                 cols={ 30 }
-                style={ getTextAreaStyle( !errorState ) }
+                style={ getTextAreaStyle( !errorState, updating ) }
                 ref={ createTextAreaRef }
                 value={ createTerms ? createTerms : '' }
                 onChange={ e => {

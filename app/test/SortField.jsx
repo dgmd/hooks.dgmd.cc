@@ -15,7 +15,7 @@ import {
   sectionStyle
 } from './Look.js';
 
-export const SortField = ({notionData, onSort, hasSort}) => {
+export const SortField = ({notionData, onSort, hasSort, updating}) => {
 
   const sortTextAreaRef = useRef( null );
   const [sortTerms, setSortTerms] = useState( null );
@@ -60,7 +60,7 @@ export const SortField = ({notionData, onSort, hasSort}) => {
             <textarea
               rows={ 10 }
               cols={ 30 }
-              style={ getTextAreaStyle( hasSort ) }
+              style={ getTextAreaStyle( hasSort, updating ) }
               ref={ sortTextAreaRef }
               value={ sortTerms ? sortTerms : '' }
               onChange={ e => {

@@ -16,9 +16,10 @@ export const sectionStyle = {
   padding: '10px'
 };
 
-export const getTextAreaStyle = valid => {
+export const getTextAreaStyle = (valid, updating=false) => {
   return {
-    border: `2px solid`,
+    borderWidth: `2px`,
+    borderStyle: updating ? `dashed` : `solid`,
     borderColor: valid ? '#000' : "#f00",
     outlineColor: valid ? '#000' : '#f00',
     padding: '10px',

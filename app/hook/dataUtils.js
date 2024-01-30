@@ -18,9 +18,12 @@ import {
 } from 'lodash-es';
 
 import {
-  DGMD_DATA,
-  DGMD_LIVE_DATA,
-  DGMD_VALID_DATA,
+  IDGMD_DATA,
+  IDGMD_FILTERED_DATA,
+  IDGMD_LIVE_DATA,
+  IDGMD_PRIMARY_DBID,
+  IDGMD_RELATION_DBIDS,
+  IDGMD_VALID_DATA
 } from './constants.js';
 
 export const isNotionDataLoaded = (jsonObject) => {
@@ -29,56 +32,62 @@ export const isNotionDataLoaded = (jsonObject) => {
 
 export const isNotionDataValid = (jsonObject) => {
   if (isNotionDataLoaded(jsonObject)) {
-    return jsonObject[DGMD_VALID_DATA];
+    return jsonObject[IDGMD_VALID_DATA];
   }
   return false;
 };
 
 export const isNotionDataLive = (jsonObject) => {
-  return jsonObject[DGMD_LIVE_DATA];
+  return jsonObject[IDGMD_LIVE_DATA];
+};
+
+export const isNotionDataFiltered = (jsonObject) => {
+  if (isNotionDataValid(jsonObject)) {
+    return jsonObject[IDGMD_FILTERED_DATA];
+  }
+  return false;
 };
   
 export const getNotionDataPrimaryDbId = (jsonObject) => {
   if (isNotionDataValid(jsonObject)) {
-    try {
-      const job = jsonObject[DGMD_DATA];
-      return job[DGMD_PRIMARY_DATABASE][DGMD_DATABASE_ID];
-    }
-    catch( err ) {
-      console.log( err );
-    }
+    return jsonObject[IDGMD_PRIMARY_DBID];
   }
   return null;
 };
   
 export const getNotionDataRelationDbIds = (jsonObject) => {
   if (isNotionDataValid(jsonObject)) {
-    try {
-      const job = jsonObject[DGMD_DATA];
-      return job[DGMD_RELATION_DATABASES].map( db => db[DGMD_DATABASE_ID] );
-    }
-    catch( err ) {
-      console.log( err );
-    }
+    return jsonObject[IDGMD_RELATION_DBIDS];
   }
   return [];
 };
   
 export const getNotionDataDb = (jsonObject, dbId) => {
   if (isNotionDataValid(jsonObject)) {
-    const job = jsonObject[DGMD_DATA];
-
-    const primary = job[DGMD_PRIMARY_DATABASE];
-    if (primary[DGMD_DATABASE_ID] === dbId) {
-      return primary;
-    }
-    for (var i=0; i<job[DGMD_RELATION_DATABASES].length; i++) {
-      const db = job[DGMD_RELATION_DATABASES][i];
-      if (db[DGMD_DATABASE_ID] === dbId) {
-        return db;
+    const job = getData( jsonObject, dbId );
+    if (!isNil(job)) {
+      const primary = job[DGMD_PRIMARY_DATABASE];
+      if (primary[DGMD_DATABASE_ID] === dbId) {
+        return primary;
+      }
+      for (var i=0; i<job[DGMD_RELATION_DATABASES].length; i++) {
+        const db = job[DGMD_RELATION_DATABASES][i];
+        if (db[DGMD_DATABASE_ID] === dbId) {
+          return db;
+        }
       }
     }
   }
+  return null;
+};
+
+const getData = (jsonObject, dbId) => {
+  if (isNotionDataValid(jsonObject)) {
+    const filtered = isNotionDataFiltered( jsonObject );
+    const src = jsonObject[IDGMD_DATA];
+    const job = filtered ? src[dbId] : src;
+    return job;
+  };
   return null;
 };
   

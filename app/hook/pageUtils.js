@@ -30,17 +30,18 @@ import {
   DGMD_VALUE
 } from 'constants.dgmd.cc';
 import {
-  at,
   isEmpty,
   isNil,
   remove
 } from 'lodash-es';
+import moment from 'moment-timezone';
 
 import {
   SEARCH_DEPTH,
   SEARCH_INFO,
   SEARCH_QUERY,
   SEARCH_TYPE,
+  SEARCH_TYPE_COMPLEX,
   SEARCH_TYPE_SIMPLE
 } from './constants.js';
 import {
@@ -114,22 +115,24 @@ export const sortPages = (pgs, fields, directions) => {
 
         const aType = aField[DGMD_TYPE];
 
-        if (aType === DGMD_BLOCK_TYPE_DATE) {
-          const aDateVal = getTimeZoneNeutralDate( aVal[DGMD_START_DATE] );
-          const bDateVal = getTimeZoneNeutralDate( bVal[DGMD_START_DATE] );
-          if (aDateVal < bDateVal) {
+        if (aType === DGMD_BLOCK_TYPE_DATE ||
+            aType === DGMD_BLOCK_TYPE_FORMULA_DATE) {
+          const aDateVal = moment.utc( aVal[DGMD_START_DATE] );
+          const bDateVal = moment.utc( bVal[DGMD_START_DATE] );
+          if (aDateVal.isBefore( bDateVal )) {
             return -1 * direction;
           }
-          if (aDateVal > bDateVal) {
+          if (aDateVal.isAfter( bDateVal )) {
             return 1 * direction;
           }
           //aDateVal === bDateVal, so...
-          const aEndDateVal = getTimeZoneNeutralDate( aVal[DGMD_END_DATE] );
-          const bEndDateVal = getTimeZoneNeutralDate( bVal[DGMD_END_DATE] );
-          if (aEndDateVal < bEndDateVal) {
+          const aEndDateVal = moment.utc( aVal[DGMD_END_DATE] );
+          console.log( )
+          const bEndDateVal = moment.utc( bVal[DGMD_END_DATE] );
+          if (aEndDateVal.isBefore(bEndDateVal)) {
             return -1 * direction;
           }
-          if (aEndDateVal > bEndDateVal) {
+          if (aEndDateVal.isAfter(bEndDateVal)) {
             return 1 * direction;
           }
         }
@@ -193,7 +196,10 @@ export const searchPages = ( jsonObj, dbId, searchObj ) => {
     }
     const pgKeys = Object.keys( pgProps );
 
-    const query = searchInfo[SEARCH_QUERY].toLowerCase();
+    const queryRaw = SEARCH_QUERY in searchInfo ? 
+      String(searchInfo[SEARCH_QUERY]).trim() : 
+      '';
+    const query = queryRaw.toLowerCase();
     if (query.length === 0) {
       return true;
     }
@@ -361,142 +367,25 @@ export const searchPages = ( jsonObj, dbId, searchObj ) => {
   };
 
   const searchedPgs = new Map();
-  const simple = searchObj[SEARCH_TYPE] === SEARCH_TYPE_SIMPLE;
+  const searchType = searchObj[SEARCH_TYPE];
+  const simple = searchType === SEARCH_TYPE_SIMPLE;
+  const complex = searchType === SEARCH_TYPE_COMPLEX;
   const pgs = getNotionDataPages( jsonObj, dbId );
   remove( pgs, pg => {
     const searchTracker = {
       allSearched: []
     };
-    const found = simple ? 
-      simpleSearchPage( pg, searchObj, searchedPgs, searchTracker, 0 ) : 
-      complexSearchPage( pg, searchObj[SEARCH_INFO], 0 );
-    return !found;
+    if (simple) {
+      return !simpleSearchPage( pg, searchObj, searchedPgs, searchTracker, 0 );
+    }
+    if (complex) {
+      return !complexSearchPage( pg, searchObj[SEARCH_INFO], 0 );
+    }
+    return false;
   } );
 };
 
-//
-//  BLOCK UPDATE CONVERTERS
-//
-//  todo --> move this to the server
-//
-export const mmPropToNotionBlock = ( block ) => {
-  const type = block[DGMD_TYPE];
-  const value = block[DGMD_VALUE];
 
-  if ([DGMD_BLOCK_TYPE_CREATED_TIME, DGMD_BLOCK_TYPE_LAST_EDITED_TIME].includes( type )) {
-    return null;
-  }
-
-  if (DGMD_BLOCK_TYPE_DATE === type) {
-    const startDateValue = new Date( value[DGMD_START_DATE] );
-    if (isFinite(startDateValue)) {
-      const dateObj = {
-        [DGMD_START_DATE]: startDateValue.toISOString()
-      };
-      const endDateValue = new Date( value[DGMD_END_DATE] );
-      if (isFinite(endDateValue)) {
-        dateObj[DGMD_END_DATE] = endDateValue.toISOString();
-      }
-      return {
-        [type]: dateObj
-      };
-    }
-  }
-
-  if ([DGMD_BLOCK_TYPE_TITLE, DGMD_BLOCK_TYPE_RICH_TEXT].includes( type )) {
-    const stringValue = String( value );
-    return {
-      [type]: [ {
-        "text": {
-          "content": stringValue
-        }
-      } ]
-    };
-  }
-
-  if ([DGMD_BLOCK_TYPE_PHONE_NUMBER, DGMD_BLOCK_TYPE_URL, DGMD_BLOCK_TYPE_EMAIL].includes( type )) {
-    const stringValue = String( value );
-    return {
-      [type]: stringValue
-    };
-  }
-
-  if (type === DGMD_BLOCK_TYPE_SELECT || type === DGMD_BLOCK_TYPE_STATUS) {
-    const stringValue = String( value );
-    return {
-      [type]: {
-        "name": stringValue
-      }
-    };
-  }
-  if (type === DGMD_BLOCK_TYPE_NUMBER) {
-    const numValue = Number( value );
-    if (isFinite(numValue)) {
-      return {
-        [type]: numValue
-      };
-    }
-  }
-  if (type === DGMD_BLOCK_TYPE_MULTI_SELECT) {
-    if (Array.isArray(value)) {
-      const selects = value.map( v => {
-        return {
-          "name": String(v)
-        };
-      } );
-
-      return {
-        [type]: selects
-      };
-    }
-  }
-  if (type === DGMD_BLOCK_TYPE_CHECKBOX) {
-    const booleanValue = deriveBoolean( value );
-    return {
-      [type]: booleanValue
-    };
-  }
-  // #https://developers.notion.com/reference/page-property-values#relation
-  if (type === DGMD_BLOCK_TYPE_RELATION) {
-    if (Array.isArray(value)) {
-
-      if (value.every( v => typeof v === 'string' )) {
-        return {
-          [type]: value.map( v => {
-            return {
-              "id": v
-            };
-          } )
-        };
-      }
-      return {
-        [type]: value
-      };
-    }
-  }
-  
-  return null;
-};
-  
-export const mmMetaToNotionBlock = ( block ) => {
-  const type = block[DGMD_TYPE];
-  const value = block[DGMD_VALUE];
-  if (type === DGMD_BLOCK_TYPE_EMOJI) {
-    return {
-      [type]: value,
-    }
-  }
-  if (type === DGMD_BLOCK_TYPE_FILE_EXTERNAL) {
-    return {
-      "type": type,
-      "external": {
-        "url": value
-      }
-    }
-  }
-};
-
-//todo -> this stays in the hook :-)
 export const mergeMmPageBlockLists = (existingList, incomingList) => {
   if (isNil(existingList)) {
     return incomingList;
