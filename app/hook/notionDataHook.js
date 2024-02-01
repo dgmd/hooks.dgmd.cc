@@ -74,6 +74,7 @@ export const useNotionData = url => {
 
   const [urlObj, setUrlObj] = useState( x => null );
   const [urlUpdateObj, setUrlUpdateObj] = useState( x => null );
+  const [urlCursorObj, setUrlCursorObj] = useState( x => null );
 
   const [notionData, setNotionData] = useState( x => null );
   const [filteredNotionData, setFilteredNotionData] = useState( x => {
@@ -224,6 +225,15 @@ export const useNotionData = url => {
     urlObj
   ] );
 
+  const handleNextCursor = useCallback ( () => {
+    console.log( 'handleNextCursor' );
+    setUrlCursorObj( x => null );
+    return true;
+  }, [
+    notionData,
+    urlObj
+  ] );
+
   //load notion data
   useEffect( () => {
 
@@ -308,39 +318,8 @@ export const useNotionData = url => {
       try {
         const crudResponse = await fetch( urlUpdateObj );
         const crudJson = await crudResponse.json( );
-        console.log( 'crudJson', crudJson );
 
-        // const params = new URLSearchParams( updateUrl );
-        // if (params.has( URL_SEARCH_PARAM_PAGE_CURSOR_TYPE_REQUEST )) {
-        //   const exsPrimaryPgs = getPrimaryPgs( newJsonObject );
-        //   const newPrimaryPgs = getPrimaryPgs( crudJson );
-        //   const merged = mergeLists( exsPrimaryPgs, newPrimaryPgs );
-        //   newJsonObject[NOTION_RESULT][NOTION_RESULT_DGMD_PRIMARY_DATABASE][NOTION_RESULT_BLOCKS] = merged;
-
-        //   const relDbs = crudJson[NOTION_RESULT][NOTION_RESULT_RELATION_DATABASES];
-        //   for (const relDb of relDbs) {
-        //     const relDbId = relDb[NOTION_RESULT_DATABASE_ID];
-        //     const exDb = newJsonObject[NOTION_RESULT][NOTION_RESULT_RELATION_DATABASES].find( 
-        //       db => db[NOTION_RESULT_DATABASE_ID] === relDbId );
-        //     if (exDb) {
-        //       const exRelPgs = exDb[NOTION_RESULT_BLOCKS];
-        //       const newRelPgs = relDb[NOTION_RESULT_BLOCKS];
-        //       const merged = mergeLists( exRelPgs, newRelPgs );
-        //       exDb[NOTION_RESULT_BLOCKS] = merged;
-        //     }
-        //     else {
-        //       newJsonObject[NOTION_RESULT][NOTION_RESULT_RELATION_DATABASES].push( relDb );
-        //     }
-        //   }
-
-        //   const cursorData = 
-        //     crudJson[NOTION_RESULT][NOTION_RESULT_DGMD_PRIMARY_DATABASE][NOTION_RESULT_CURSOR_DATA];
-        //   newJsonObject[NOTION_RESULT][NOTION_RESULT_DGMD_PRIMARY_DATABASE][NOTION_RESULT_CURSOR_DATA] = cursorData;
-
-        //   update(newJsonObject);
-        // }
-
-        if (crudJson[CRUD_RESPONSE_RESULT]) {
+        if (CRUD_RESPONSE_RESULT in crudJson) {
           const result = crudJson[CRUD_RESPONSE_RESULT];
           const resultType = crudJson[CRUD_RESPONSE_RESULT_TYPE];
           const success = result[resultType];
@@ -348,7 +327,7 @@ export const useNotionData = url => {
               const delId = result[CRUD_RESPONSE_DELETE_ID];
               setNotionData( x => spliceNotionPage( x, delId ) );
           }
-          if (resultType === CRUD_RESPONSE_CREATE && success) {
+          else if (resultType === CRUD_RESPONSE_CREATE && success) {
             const pg = result[CRUD_RESPONSE_PAGE];
             const dbId = result[CRUD_RESPONSE_DB_ID];
 
@@ -361,7 +340,7 @@ export const useNotionData = url => {
 
             setNotionData( x => updateNotionData(x) );
           }
-          if (resultType === CRUD_RESPONSE_UPDATE && success) {
+          else if (resultType === CRUD_RESPONSE_UPDATE && success) {
             const pg = result[CRUD_RESPONSE_PAGE];
             const dbId = result[CRUD_RESPONSE_DB_ID];
             const pgId = result[CRUD_RESPONSE_UPDATE_ID];
@@ -400,6 +379,50 @@ export const useNotionData = url => {
     urlUpdateObj
   ] );
 
+  useEffect( () => {
+    async function fetchData() {
+      console.log( 'urlCursorObj', urlCursorObj );
+    };
+
+    if (!isNil(urlCursorObj) && rUpdating.current) {
+      fetchData();
+    }
+
+    // const params = new URLSearchParams( updateUrl );
+    // if (params.has( URL_SEARCH_PARAM_PAGE_CURSOR_TYPE_REQUEST )) {
+    //   const exsPrimaryPgs = getPrimaryPgs( newJsonObject );
+    //   const newPrimaryPgs = getPrimaryPgs( crudJson );
+    //   const merged = mergeLists( exsPrimaryPgs, newPrimaryPgs );
+    //   newJsonObject[NOTION_RESULT][NOTION_RESULT_DGMD_PRIMARY_DATABASE][NOTION_RESULT_BLOCKS] = merged;
+
+    //   const relDbs = crudJson[NOTION_RESULT][NOTION_RESULT_RELATION_DATABASES];
+    //   for (const relDb of relDbs) {
+    //     const relDbId = relDb[NOTION_RESULT_DATABASE_ID];
+    //     const exDb = newJsonObject[NOTION_RESULT][NOTION_RESULT_RELATION_DATABASES].find( 
+    //       db => db[NOTION_RESULT_DATABASE_ID] === relDbId );
+    //     if (exDb) {
+    //       const exRelPgs = exDb[NOTION_RESULT_BLOCKS];
+    //       const newRelPgs = relDb[NOTION_RESULT_BLOCKS];
+    //       const merged = mergeLists( exRelPgs, newRelPgs );
+    //       exDb[NOTION_RESULT_BLOCKS] = merged;
+    //     }
+    //     else {
+    //       newJsonObject[NOTION_RESULT][NOTION_RESULT_RELATION_DATABASES].push( relDb );
+    //     }
+    //   }
+
+    //   const cursorData = 
+    //     crudJson[NOTION_RESULT][NOTION_RESULT_DGMD_PRIMARY_DATABASE][NOTION_RESULT_CURSOR_DATA];
+    //   newJsonObject[NOTION_RESULT][NOTION_RESULT_DGMD_PRIMARY_DATABASE][NOTION_RESULT_CURSOR_DATA] = cursorData;
+
+    //   update(newJsonObject);
+    // }
+
+
+  }, [
+    urlCursorObj
+  ] );
+
   const setSearch = useCallback( searchObj => {
     setSearchObj( x => searchObj );
     rSearchObj.current = searchObj;
@@ -430,6 +453,7 @@ export const useNotionData = url => {
     handleCreate,
     handleUpdate,
     handleDelete,
+    handleNextCursor,
     notionData,
     filteredNotionData,
     updating: rUpdating.current

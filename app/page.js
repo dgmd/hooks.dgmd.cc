@@ -5,6 +5,9 @@ import {
 } from 'react';
 
 import {
+  hasNotionDataNextCursor
+} from './hook/cursorUtils.js';
+import {
   getNotionDataPages,
   getNotionDataPrimaryDbId,
   isNotionDataLive,
@@ -20,6 +23,9 @@ import {
 import {
   CreateField
 } from './test/CreateField.jsx';
+import {
+  CursorField
+} from './test/CursorField.jsx';
 import {
   PageComponent
 } from './test/PageComponent.jsx';
@@ -42,6 +48,7 @@ export default function Home() {
     handleCreate,
     handleUpdate,
     handleDelete,
+    handleNextCursor,
     notionData,
     filteredNotionData,
     updating
@@ -75,6 +82,11 @@ export default function Home() {
       <UpdateStatus
         title={ 'UPDATING STATUS' }
         status={ updating ? 'ACTIVE' : 'INACTIVE' }
+      />
+
+      <CursorField
+        hasNextCursor={ hasNotionDataNextCursor(notionData) }
+        onRequestNextCursor={ handleNextCursor }
       />
 
       <CreateField

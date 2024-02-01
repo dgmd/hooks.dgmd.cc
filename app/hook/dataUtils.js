@@ -91,20 +91,7 @@ const getData = (jsonObject, dbId) => {
   return null;
 };
   
-export const getNextCursorData = (jsonObject) => {
-  const primaryDbId = getNotionDataPrimaryDbId( jsonObject );
-  const db = getNotionDataDb( jsonObject, primaryDbId );
-  if (isNil(db)) {
-    return null;
-  }
-  const cursorData = db[DGMD_CURSOR_DATA];
-  return cursorData;
-};
 
-export const hasNotionDataNextCursorData = (jsonObject) => {
-  return !isNil( getNotionDataNextCursorData(jsonObject) );
-};
-  
 export const getDbIdByName = (jsonObject, name) => {
   if (isNotionDataValid(jsonObject)) {
     try {

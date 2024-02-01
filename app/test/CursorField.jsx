@@ -5,6 +5,7 @@ import {
 } from './Look.js';
 
 export const CursorField = ({hasNextCursor, onRequestNextCursor}) => {
+  hasNextCursor = true;
   return (
   <div
     style={ sectionStyle }
