@@ -1,8 +1,9 @@
 import {
   DGMD_CURSOR_DATA,
-  DGMD_CURSOR_HAS_MORE
+  DGMD_CURSOR_NEXT
 } from 'constants.dgmd.cc';
 import {
+  isEmpty,
   isNil
 } from 'lodash-es';
 
@@ -11,7 +12,7 @@ import {
   getNotionDataPrimaryDbId
 } from './dataUtils.js';
 
-export const getNotionDataNextCursor = (jsonObject) => {
+const getNotionDataNextCursorObject = (jsonObject) => {
   const primaryDbId = getNotionDataPrimaryDbId( jsonObject );
   const db = getNotionDataDb( jsonObject, primaryDbId );
   if (isNil(db)) {
@@ -22,10 +23,20 @@ export const getNotionDataNextCursor = (jsonObject) => {
 };
 
 export const hasNotionDataNextCursor = (jsonObject) => {
-  const nextCursorData = getNotionDataNextCursor(jsonObject);
-  if (!isNil( nextCursorData )) {
-    return DGMD_CURSOR_HAS_MORE in nextCursorData && nextCursorData[DGMD_CURSOR_HAS_MORE];
+  const nextCursorData = getNotionDataNextCursorObject(jsonObject);
+  if (!isNil(nextCursorData)) {
+    return nextCursorData[DGMD_CURSOR_NEXT];
   }
   return false;
+};
+
+export const getNotionDataNextCursor = (jsonObject) => {
+  if (hasNotionDataNextCursor(jsonObject)) {
+    const obj = getNotionDataNextCursorObject(jsonObject);
+    if (!isNil(obj)) {
+      return obj[DGMD_CURSOR_NEXT];
+    }
+  }
+  return null;
 };
     

@@ -19,6 +19,7 @@ import {
   CRUD_VALUE_ACTION_CREATE,
   CRUD_VALUE_ACTION_DELETE,
   CRUD_VALUE_ACTION_UPDATE,
+  DGMD_BLOCKS,
   DGMD_BLOCK_TYPE_ID,
   DGMD_DATABASE_ID,
   DGMD_METADATA,
@@ -29,8 +30,11 @@ import {
   DGMD_TYPE,
   DGMD_VALUE,
   PROTO_RESPONSE_KEY_SNAPSHOT_TIMESTAMP,
+  QUERY_PARAM_PAGE_CURSOR_ID_REQUEST,
+  QUERY_PARAM_PAGE_CURSOR_TYPE_REQUEST,
   QUERY_RESPONSE_KEY_RESULT,
-  QUERY_RESPONSE_KEY_SUCCESS
+  QUERY_RESPONSE_KEY_SUCCESS,
+  QUERY_VALUE_PAGE_CURSOR_TYPE_SPECIFIC
 } from 'constants.dgmd.cc';
 import {
   isArray,
@@ -54,6 +58,9 @@ import {
   IDGMD_VALID_DATA
 } from './constants.js';
 import {
+  getNotionDataNextCursor
+} from './cursorUtils.js';
+import {
   getNotionDataDb,
   getNotionDataPage,
   getNotionDataPages,
@@ -63,6 +70,7 @@ import {
   spliceNotionPage
 } from './dataUtils.js';
 import {
+  mergePageLists,
   searchPages,
   sortPages
 } from './pageUtils.js';
@@ -226,8 +234,18 @@ export const useNotionData = url => {
   ] );
 
   const handleNextCursor = useCallback ( () => {
-    console.log( 'handleNextCursor' );
-    setUrlCursorObj( x => null );
+    const nextCursor = getNotionDataNextCursor( notionData );
+    if (isNil(nextCursor)) {
+      return false;
+    }
+    const params = new URLSearchParams(urlObj.search);
+    params.set( QUERY_PARAM_PAGE_CURSOR_TYPE_REQUEST, QUERY_VALUE_PAGE_CURSOR_TYPE_SPECIFIC );
+    params.set( QUERY_PARAM_PAGE_CURSOR_ID_REQUEST, nextCursor );
+
+    const modifiedUrl = new URL(urlObj.origin + urlObj.pathname);
+    modifiedUrl.search = params.toString();
+    rUpdating.current = true;
+    setUrlCursorObj( x => modifiedUrl.href );
     return true;
   }, [
     notionData,
@@ -236,54 +254,34 @@ export const useNotionData = url => {
 
   //load notion data
   useEffect( () => {
-
-    const parsePrimaryDbId = (jsonObject) => {
-      const job = jsonObject[IDGMD_DATA];
-      return job[DGMD_PRIMARY_DATABASE][DGMD_DATABASE_ID];
-    };
-      
-    const parseRelationDbIds = (jsonObject) => {
-      const job = jsonObject[IDGMD_DATA];
-      return job[DGMD_RELATION_DATABASES].map( db => db[DGMD_DATABASE_ID] );
-    };
-
     async function fetchData() {
       rUpdating.current = true;
       try {
         const response = await fetch( url );
         const parsedJsonObject = await response.json( );
+        const x = structuredClone( parsedJsonObject );
 
-        const validStatus = parsedJsonObject[QUERY_RESPONSE_KEY_SUCCESS];
+        const validStatus = x[QUERY_RESPONSE_KEY_SUCCESS];
         if (isNil(validStatus) || !validStatus) {
           throw new Error( 'invalid data' );
         }
 
-        //claim this data as our own
-        delete parsedJsonObject[QUERY_RESPONSE_KEY_SUCCESS];
-        parsedJsonObject[IDGMD_FILTERED_DATA] = false;
-        parsedJsonObject[IDGMD_LIVE_DATA] = !isNil(parsedJsonObject[PROTO_RESPONSE_KEY_SNAPSHOT_TIMESTAMP]) || true;
-        delete parsedJsonObject[PROTO_RESPONSE_KEY_SNAPSHOT_TIMESTAMP];
-        parsedJsonObject[IDGMD_DATA] = parsedJsonObject[QUERY_RESPONSE_KEY_RESULT];
-        delete parsedJsonObject[QUERY_RESPONSE_KEY_RESULT];
-        parsedJsonObject[IDGMD_VALID_DATA] = true;
-
-        parsedJsonObject[IDGMD_PRIMARY_DBID] = parsePrimaryDbId( parsedJsonObject );
-        parsedJsonObject[IDGMD_RELATION_DBIDS] = parseRelationDbIds( parsedJsonObject );
-
-        rUpdating.current = false;
-        setNotionData( x => parsedJsonObject );
+        processQueryData( x );
+        setNotionData( d => x );
         setFilteredNotionData( x => searchAndSortData(
-          parsedJsonObject, rSearchObj.current, rSortObj.current
+          x, rSearchObj.current, rSortObj.current
         ) );
       }
       catch( err ) {
         console.log( err );
-        rUpdating.current = false;
         setNotionData( x => {
           return {
             [IDGMD_VALID_DATA]: false,
           };
         } );
+      }
+      finally {
+        rUpdating.current = false;
       }
     }
 
@@ -324,8 +322,8 @@ export const useNotionData = url => {
           const resultType = crudJson[CRUD_RESPONSE_RESULT_TYPE];
           const success = result[resultType];
           if (resultType === CRUD_RESPONSE_DELETE && success) {
-              const delId = result[CRUD_RESPONSE_DELETE_ID];
-              setNotionData( x => spliceNotionPage( x, delId ) );
+            const delId = result[CRUD_RESPONSE_DELETE_ID];
+            setNotionData( x => spliceNotionPage( x, delId ) );
           }
           else if (resultType === CRUD_RESPONSE_CREATE && success) {
             const pg = result[CRUD_RESPONSE_PAGE];
@@ -359,15 +357,14 @@ export const useNotionData = url => {
             setNotionData( x => updateNotionData(x) );
           }
         }
-
-        rUpdating.current = false;
       }
       catch ( err ) {
         console.log( err );
-        rUpdating.current = false;
       }
-
-      setUrlUpdateObj( x => null );
+      finally {
+        rUpdating.current = false;
+        setUrlUpdateObj( x => null );
+      }
     };
 
     if (!isNil(urlUpdateObj) && rUpdating.current) {
@@ -379,45 +376,55 @@ export const useNotionData = url => {
     urlUpdateObj
   ] );
 
+  //load more cursors
   useEffect( () => {
+
     async function fetchData() {
-      console.log( 'urlCursorObj', urlCursorObj );
+      try {
+        const cursorResponse = await fetch( urlCursorObj );
+        const cursorJson = await cursorResponse.json( );
+        const y = structuredClone( cursorJson );
+        const validStatus = y[QUERY_RESPONSE_KEY_SUCCESS];
+        if (isNil(validStatus) || !validStatus) {
+          throw new Error( 'invalid data' );
+        }
+
+        const updateNotionData = x => {
+          const x2 = structuredClone( x );
+          processQueryData( y );
+
+          const primaryDbId = getNotionDataPrimaryDbId( x2 );
+          const exsPrimaryPgs = getNotionDataPages( x2, primaryDbId );
+          const newPrimaryPgs = getNotionDataPages( y, primaryDbId );
+          const mergedPrimaryPgs = mergePageLists( exsPrimaryPgs, newPrimaryPgs );
+          y[IDGMD_DATA][DGMD_PRIMARY_DATABASE][DGMD_BLOCKS] = mergedPrimaryPgs;
+
+          const previewDbIds = getNotionDataRelationDbIds( x2 );
+          for (const previewDbId of previewDbIds) {
+            const exsPreviewPgs = getNotionDataPages( x2, previewDbId );
+            const newPreviewPgs = getNotionDataPages( y, previewDbId );
+            const mergedPreviewPgs = mergePageLists( exsPreviewPgs, newPreviewPgs );
+            y[IDGMD_DATA][DGMD_RELATION_DATABASES].find( 
+              db => db[DGMD_DATABASE_ID] === previewDbId )[DGMD_BLOCKS] = mergedPreviewPgs;
+          }
+
+          return y;
+        };
+
+        setNotionData( x => updateNotionData(x) );
+      }
+      catch ( err ) {
+        console.log( err );
+      }
+      finally {
+        setUrlCursorObj( x => null );
+        rUpdating.current = false;
+      }
     };
 
     if (!isNil(urlCursorObj) && rUpdating.current) {
       fetchData();
     }
-
-    // const params = new URLSearchParams( updateUrl );
-    // if (params.has( URL_SEARCH_PARAM_PAGE_CURSOR_TYPE_REQUEST )) {
-    //   const exsPrimaryPgs = getPrimaryPgs( newJsonObject );
-    //   const newPrimaryPgs = getPrimaryPgs( crudJson );
-    //   const merged = mergeLists( exsPrimaryPgs, newPrimaryPgs );
-    //   newJsonObject[NOTION_RESULT][NOTION_RESULT_DGMD_PRIMARY_DATABASE][NOTION_RESULT_BLOCKS] = merged;
-
-    //   const relDbs = crudJson[NOTION_RESULT][NOTION_RESULT_RELATION_DATABASES];
-    //   for (const relDb of relDbs) {
-    //     const relDbId = relDb[NOTION_RESULT_DATABASE_ID];
-    //     const exDb = newJsonObject[NOTION_RESULT][NOTION_RESULT_RELATION_DATABASES].find( 
-    //       db => db[NOTION_RESULT_DATABASE_ID] === relDbId );
-    //     if (exDb) {
-    //       const exRelPgs = exDb[NOTION_RESULT_BLOCKS];
-    //       const newRelPgs = relDb[NOTION_RESULT_BLOCKS];
-    //       const merged = mergeLists( exRelPgs, newRelPgs );
-    //       exDb[NOTION_RESULT_BLOCKS] = merged;
-    //     }
-    //     else {
-    //       newJsonObject[NOTION_RESULT][NOTION_RESULT_RELATION_DATABASES].push( relDb );
-    //     }
-    //   }
-
-    //   const cursorData = 
-    //     crudJson[NOTION_RESULT][NOTION_RESULT_DGMD_PRIMARY_DATABASE][NOTION_RESULT_CURSOR_DATA];
-    //   newJsonObject[NOTION_RESULT][NOTION_RESULT_DGMD_PRIMARY_DATABASE][NOTION_RESULT_CURSOR_DATA] = cursorData;
-
-    //   update(newJsonObject);
-    // }
-
 
   }, [
     urlCursorObj
@@ -495,4 +502,27 @@ const searchAndSortData = ( jsonObject, search, sort ) => {
 
   Object.freeze( y );
   return y;
+};
+
+const processQueryData = ( jsonObject ) => {
+  const parsePrimaryDbId = (x) => {
+    const job = x[IDGMD_DATA];
+    return job[DGMD_PRIMARY_DATABASE][DGMD_DATABASE_ID];
+  };
+    
+  const parseRelationDbIds = (x) => {
+    const job = x[IDGMD_DATA];
+    return job[DGMD_RELATION_DATABASES].map( db => db[DGMD_DATABASE_ID] );
+  };
+  
+  delete jsonObject[QUERY_RESPONSE_KEY_SUCCESS];
+  jsonObject[IDGMD_FILTERED_DATA] = false;
+  jsonObject[IDGMD_LIVE_DATA] = !isNil(jsonObject[PROTO_RESPONSE_KEY_SNAPSHOT_TIMESTAMP]) || true;
+  delete jsonObject[PROTO_RESPONSE_KEY_SNAPSHOT_TIMESTAMP];
+  jsonObject[IDGMD_DATA] = jsonObject[QUERY_RESPONSE_KEY_RESULT];
+  delete jsonObject[QUERY_RESPONSE_KEY_RESULT];
+  jsonObject[IDGMD_VALID_DATA] = true;
+  jsonObject[IDGMD_PRIMARY_DBID] = parsePrimaryDbId( jsonObject );
+  jsonObject[IDGMD_RELATION_DBIDS] = parseRelationDbIds( jsonObject );
+  return jsonObject;
 };

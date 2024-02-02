@@ -58,10 +58,6 @@ export const getPageProperties = page => {
   return page[DGMD_PROPERTIES];
 };
 
-export const getPage = pgId => {
-
-};
-
 export const getPageId = page => {
   return getPageMetadata(page)[DGMD_BLOCK_TYPE_ID][DGMD_VALUE];
 }
@@ -385,8 +381,7 @@ export const searchPages = ( jsonObj, dbId, searchObj ) => {
   } );
 };
 
-
-export const mergeMmPageBlockLists = (existingList, incomingList) => {
+export const mergePageLists = (existingList, incomingList) => {
   if (isNil(existingList)) {
     return incomingList;
   }
@@ -406,5 +401,6 @@ export const mergeMmPageBlockLists = (existingList, incomingList) => {
     }
     return acc;
   }, [])];
+
   return mergedList;
 };

@@ -146,16 +146,6 @@ export const getNotionDataPages = (jsonObject, dbId) => {
   return [];
 };
 
-// const getNotionDataPageIdx = (dbBlocks, pageId) => {
-//   const pageIdx = dbBlocks.findIndex( block => {
-//     const blockIdMeta = block[DGMD_METADATA];
-//     const blockIdObj = blockIdMeta[DGMD_BLOCK_TYPE_ID];
-//     const blockId = blockIdObj[DGMD_VALUE];
-//     return blockId === pageId;
-//   } );
-//   return pageIdx;
-// };
-
 export const getNotionDataAllDbIds = (notionData) => {
   return [ 
     getNotionDataPrimaryDbId(notionData, true), 
