@@ -1,12 +1,9 @@
-
-
 import {
   useEffect,
   useMemo,
   useRef,
   useState
 } from 'react';
-
 
 const NOTION_RESULT_PRIMARY_DATABASE = 'NOTION_RESULT_PRIMARY_DATABASE';
 const NOTION_RESULT_RELATION_DATABASES = 'NOTION_RESULT_RELATION_DATABASES';
@@ -45,7 +42,9 @@ export const BLOCK_TYPE_CHECKBOX = 'checkbox';
 export const BLOCK_TYPE_DATE = 'date';
 export const BLOCK_TYPE_EMOJI = 'emoji';
 export const BLOCK_TYPE_FILE_EXTERNAL = 'external';
+export const BLOCK_TYPE_FILE = 'file';
 export const BLOCK_TYPE_RELATION = 'relation';
+export const BLOCK_TYPE_FILES = 'files';
 
 export const DGMDCC_BLOCK_DATE_START = 'start';
 export const DGMDCC_BLOCK_DATE_END = 'end';
@@ -626,6 +625,23 @@ const mmBlocktoNotionBlock = ( block ) => {
       };
     }
   }
+  if (type === BLOCK_TYPE_FILES) {
+    if (Array.isArray(value)) {
+      const rvalue = value.reduce( (acc, cur) => {
+        acc.push( {
+          "type": BLOCK_TYPE_FILE_EXTERNAL,
+          "name": "_",
+          [BLOCK_TYPE_FILE_EXTERNAL]: {
+            "url": cur
+          }
+        } );
+        return acc;
+      }, [] );
+      return {
+        [type]: rvalue
+      };
+    }
+  }
   
   return null;
 };
@@ -641,7 +657,8 @@ const mmBlocktoHeaderBlock = ( block ) => {
   if (type === BLOCK_TYPE_FILE_EXTERNAL) {
     return {
       "type": type,
-      "external": {
+      "name": "_",
+      [BLOCK_TYPE_FILE_EXTERNAL]: {
         "url": value
       }
     }

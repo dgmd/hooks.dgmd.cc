@@ -3,6 +3,7 @@
 import {
   BLOCK_TYPE_DATE,
   BLOCK_TYPE_EMOJI,
+  BLOCK_TYPE_FILES,
   BLOCK_TYPE_FILE_EXTERNAL,
   BLOCK_TYPE_RELATION,
   BLOCK_TYPE_RICH_TEXT,
@@ -30,8 +31,8 @@ export default function Home() {
     nataJSON,
     crudding
   ] = useNotionData(
-    // 'http://localhost:3000/api/query?d=529a56b3cc2b44798a98e5e0c39ffa47&b=false&r=true' );
-    'http://localhost:3000/api/prototype?i=ad16fb5b-5a52-4bcc-b663-0ea870565599' );
+    'http://localhost:3000/api/query?d=529a56b3cc2b44798a98e5e0c39ffa47&b=false&r=true' );
+    // 'http://localhost:3000/api/prototype?i=ad16fb5b-5a52-4bcc-b663-0ea870565599' );
 
   const cbUpdatePage = useCallback( (dbId, pageId) => {
     if (!nata || !nata.isValid()) {
@@ -42,24 +43,32 @@ export default function Home() {
         [DGMDCC_BLOCK_TYPE]: BLOCK_TYPE_TITLE,
         [DGMDCC_BLOCK_VALUE]: "updated" + Math.floor(Math.random() * 100)
        },
-      "🗿 PUB CUSTOMERS": {
-        [DGMDCC_BLOCK_TYPE]: BLOCK_TYPE_RELATION,
-        [DGMDCC_BLOCK_VALUE]: [
-          'fa3fd539b88148beadfd8d4628bb941f'
-        ]
+      "uploady": {
+        [DGMDCC_BLOCK_TYPE]: BLOCK_TYPE_FILES,
+        [DGMDCC_BLOCK_VALUE]: [ "https://www.google.com/images/branding/googlelogo/2x/googlelogo_color_272x92dp.png" ]
       },
-      "Date": {
-        [DGMDCC_BLOCK_TYPE]: BLOCK_TYPE_DATE,
-        [DGMDCC_BLOCK_VALUE]: {
-          [DGMDCC_BLOCK_DATE_START]: "2043-11-02",
-          [DGMDCC_BLOCK_DATE_END]: "2193-11-02T00:00:00.000-04:00",
-        }
-      }
+      // "🗿 PUB CUSTOMERS": {
+      //   [DGMDCC_BLOCK_TYPE]: BLOCK_TYPE_RELATION,
+      //   [DGMDCC_BLOCK_VALUE]: [
+      //     'fa3fd539b88148beadfd8d4628bb941f'
+      //   ]
+      // },
+      // "Date": {
+      //   [DGMDCC_BLOCK_TYPE]: BLOCK_TYPE_DATE,
+      //   [DGMDCC_BLOCK_VALUE]: {
+      //     [DGMDCC_BLOCK_DATE_START]: "2043-11-02",
+      //     [DGMDCC_BLOCK_DATE_END]: "2193-11-02T00:00:00.000-04:00",
+      //   }
+      // }
     };
     const updatePageMetaObj = {
       'icon': {
         [DGMDCC_BLOCK_TYPE]: BLOCK_TYPE_EMOJI,
-        [DGMDCC_BLOCK_VALUE]: "😊"
+        [DGMDCC_BLOCK_VALUE]: "🤡"
+      },
+      'cover': {
+        [DGMDCC_BLOCK_TYPE]: BLOCK_TYPE_FILE_EXTERNAL,
+        [DGMDCC_BLOCK_VALUE]: "https://m.media-amazon.com/images/I/71yBeUQJGML._AC_SX522_.jpg"
       }
     };
     nata.updatePage( dbId, pageId, updatePageObj, updatePageMetaObj );
@@ -180,14 +189,14 @@ export default function Home() {
 
       {
         nata.getPages( dbId ).map( ( page, i ) => {
-          const datesBlock = page[DGMDCC_BLOCK_PROPERTIES]['Dates'];
-          const startDate = datesBlock[DGMDCC_BLOCK_VALUE][DGMDCC_BLOCK_DATE_START];
-          const endDate = datesBlock[DGMDCC_BLOCK_VALUE][DGMDCC_BLOCK_DATE_END];
+        //   const datesBlock = page[DGMDCC_BLOCK_PROPERTIES]['Dates'];
+        //   const startDate = datesBlock[DGMDCC_BLOCK_VALUE][DGMDCC_BLOCK_DATE_START];
+        //   const endDate = datesBlock[DGMDCC_BLOCK_VALUE][DGMDCC_BLOCK_DATE_END];
 
-          const hostBlock = page[DGMDCC_BLOCK_PROPERTIES]['Host'];
-          const hostDbId = hostBlock[DGMDCC_BLOCK_VALUE][0]['DATABASE_ID'];
-          const hostPgId = hostBlock[DGMDCC_BLOCK_VALUE][0]['PAGE_ID'];
-          const hostData = nata.getPage( hostDbId, hostPgId );
+        //   const hostBlock = page[DGMDCC_BLOCK_PROPERTIES]['Host'];
+        //   const hostDbId = hostBlock[DGMDCC_BLOCK_VALUE][0]['DATABASE_ID'];
+        //   const hostPgId = hostBlock[DGMDCC_BLOCK_VALUE][0]['PAGE_ID'];
+        //   const hostData = nata.getPage( hostDbId, hostPgId );
 
           return (
             <div
@@ -200,65 +209,27 @@ export default function Home() {
               }}
               key={ i }
             >
-              <pre>
-              { JSON.stringify( page, null, 1 ) }
-              </pre>
-              <div>
-                START DATE:
-                {
-                prettyPrintNotionDate(
-                  startDate,
-                  DATE_PRETTY_SHORT_DATE
-                )
-                }
-              </div>
-              <div>
-                END DATE:
-                {
-                prettyPrintNotionDate(
-                  endDate,
-                  DATE_PRETTY_SHORT_NUMERIC_DATE
-                )
-                }
-              </div>
-              <div>
-              HOST:
-              {
-                hostData[DGMDCC_BLOCK_PROPERTIES]['First Name'][DGMDCC_BLOCK_VALUE] + 
-                ' ' +
-                hostData[DGMDCC_BLOCK_PROPERTIES]['Last Name'][DGMDCC_BLOCK_VALUE]
-              }
-              </div>
-              <div>
-              
-              </div>
-              <div
-                style={{
-                  paddingTop: '2px',
-                  display: 'flex',
-                  flexDirection: 'row',
-                  gap: '12px'
-                }}
-              >
-                <div
-                  onClick={ () => {
-                    nata.deletePage( dbId, getPageId(page) );
-                  } }
-                  style={linkStyle}
-                >
+               <pre>
+               { JSON.stringify( page, null, 1 ) }
+               </pre>
+               <div
+                 onClick={ () => {
+                   nata.deletePage( dbId, getPageId(page) );
+                 } }
+                 style={linkStyle}
+               >
                 DELETE
-                </div>
-                <div
-                  onClick={ () => {
-                    cbUpdatePage( dbId, getPageId(page) );
-                  } }
-                  style={linkStyle}                
-                >
+               </div>
+               <div
+                onClick={ () => {
+                  cbUpdatePage( dbId, getPageId(page) );
+                } }
+                style={linkStyle}                
+              >
                 UPDATE
-                </div>
               </div>
             </div>
-          );
+           );
         })
       }
 
