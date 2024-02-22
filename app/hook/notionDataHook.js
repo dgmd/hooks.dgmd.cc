@@ -11,14 +11,12 @@ import {
   CRUD_RESPONSE_DB_ID,
   CRUD_RESPONSE_DELETE,
   CRUD_RESPONSE_DELETE_ID,
+  CRUD_RESPONSE_OPTIONS,
   CRUD_RESPONSE_PAGE,
   CRUD_RESPONSE_RESULT,
   CRUD_RESPONSE_RESULT_TYPE,
   CRUD_RESPONSE_UPDATE,
   CRUD_RESPONSE_UPDATE_ID,
-  CRUD_VALUE_ACTION_CREATE,
-  CRUD_VALUE_ACTION_DELETE,
-  CRUD_VALUE_ACTION_UPDATE,
   DGMD_BLOCKS,
   DGMD_BLOCK_TYPE_ID,
   DGMD_DATABASE_ID,
@@ -78,6 +76,12 @@ import {
   uniqueKey
 } from './utils.js';
 
+const KEY_UPDATE_ACTION = 'action';
+const KEY_UPDATE_URL = 'url';
+const VALUE_UPDATE_ACTION_CREATE = 'create';
+const VALUE_UPDATE_ACTION_DELETE = 'delete';
+const VALUE_UPDATE_ACTION_UPDATE = 'update';
+
 export const useNotionData = url => {
 
   const [urlObj, setUrlObj] = useState( x => null );
@@ -115,13 +119,16 @@ export const useNotionData = url => {
     const pgUpdateProp = update[DGMD_PROPERTIES];
     const pgUpdateProps = isObject( pgUpdateProp ) ? pgUpdateProp : {};
     if (isNotionDataLive(notionData)) {
-      const updateUrl = new URL( '/api/update', urlObj.origin );
-      updateUrl.searchParams.append( CRUD_PARAM_ACTION, CRUD_VALUE_ACTION_CREATE );
-      updateUrl.searchParams.append( CRUD_PARAM_CREATE_BLOCK_ID, dbId );
-      updateUrl.searchParams.append( CRUD_PARAM_CREATE_META, JSON.stringify(pgUpdateMetas) );
-      updateUrl.searchParams.append( CRUD_PARAM_CREATE_CHILDREN, JSON.stringify(pgUpdateProps) );
       rUpdating.current = true;
-      setUrlUpdateObj( x => updateUrl.href );
+      setUrlUpdateObj( x => {
+        return {
+          [KEY_UPDATE_ACTION]: VALUE_UPDATE_ACTION_CREATE,
+          [KEY_UPDATE_URL]: new URL( '/api/update', urlObj.origin ),
+          [CRUD_PARAM_CREATE_BLOCK_ID]: dbId,
+          [CRUD_PARAM_CREATE_META]: structuredClone( pgUpdateMetas ),
+          [CRUD_PARAM_CREATE_CHILDREN]: structuredClone( pgUpdateProps )
+        };
+      } );
     }
     else {
       //todo: a basic prune of the props and metas
@@ -172,13 +179,16 @@ export const useNotionData = url => {
     const pgUpdateProps = isObject( pgUpdateProp ) ? pgUpdateProp : {};
     
     if (isNotionDataLive(notionData)) {
-      const updateUrl = new URL( '/api/update', urlObj.origin );
-      updateUrl.searchParams.append( CRUD_PARAM_ACTION, CRUD_VALUE_ACTION_UPDATE );
-      updateUrl.searchParams.append( CRUD_PARAM_UPDATE_BLOCK_ID, pgId );
-      updateUrl.searchParams.append( CRUD_PARAM_UPDATE_BLOCK, JSON.stringify(pgUpdateProps) );
-      updateUrl.searchParams.append( CRUD_PARAM_UPDATE_META, JSON.stringify(pgUpdateMetas) );
       rUpdating.current = true;
-      setUrlUpdateObj( x => updateUrl.href );
+      setUrlUpdateObj( x => {
+        return {
+          [KEY_UPDATE_ACTION]: VALUE_UPDATE_ACTION_UPDATE,
+          [KEY_UPDATE_URL]: new URL( '/api/update', urlObj.origin ),
+          [CRUD_PARAM_UPDATE_BLOCK_ID]: pgId,
+          [CRUD_PARAM_UPDATE_BLOCK]: structuredClone( pgUpdateProps ),
+          [CRUD_PARAM_UPDATE_META]: structuredClone( pgUpdateMetas )
+        };
+      } );
     }
     else {
       const updatePage = d => {
@@ -218,11 +228,14 @@ export const useNotionData = url => {
       return false;
     }
     if (isNotionDataLive(notionData)) {
-      const updateUrl = new URL( '/api/update', urlObj.origin );
-      updateUrl.searchParams.append( CRUD_PARAM_ACTION, CRUD_VALUE_ACTION_DELETE );
-      updateUrl.searchParams.append( CRUD_PARAM_DELETE_BLOCK_ID, pgId );
       rUpdating.current = true;
-      setUrlUpdateObj( x => updateUrl.href );
+      setUrlUpdateObj( x => {
+        return {
+          [KEY_UPDATE_ACTION]: VALUE_UPDATE_ACTION_DELETE,
+          [KEY_UPDATE_URL]: new URL( '/api/update', urlObj.origin ),
+          [CRUD_PARAM_DELETE_BLOCK_ID]: pgId
+        }
+      } );
     }
     else {
       setNotionData( x => spliceNotionPage( x, pgId ) );
@@ -257,7 +270,9 @@ export const useNotionData = url => {
     async function fetchData() {
       rUpdating.current = true;
       try {
-        const response = await fetch( url );
+        const response = await fetch( url, {
+          method: 'GET'
+        } );
         const parsedJsonObject = await response.json( );
         const x = structuredClone( parsedJsonObject );
 
@@ -314,47 +329,83 @@ export const useNotionData = url => {
     async function fetchData() {
 
       try {
-        const crudResponse = await fetch( urlUpdateObj );
+        //extract and strip off the action and url
+        const type = urlUpdateObj[KEY_UPDATE_ACTION];
+        delete urlUpdateObj[KEY_UPDATE_ACTION];
+        const fetchUrl = urlUpdateObj[KEY_UPDATE_URL];
+        delete urlUpdateObj[KEY_UPDATE_URL];
+
+        const fetchType = {
+          [VALUE_UPDATE_ACTION_CREATE]: 'POST',
+          [VALUE_UPDATE_ACTION_DELETE]: 'DELETE',
+          [VALUE_UPDATE_ACTION_UPDATE]: 'PUT'
+        }[type];
+
+        const fetchParams = {
+          method: fetchType
+        };
+        if (type === VALUE_UPDATE_ACTION_CREATE || type === VALUE_UPDATE_ACTION_UPDATE) {
+          fetchParams.headers = {
+            'Content-Type': 'application/json',
+          };
+          fetchParams.body = JSON.stringify( urlUpdateObj );
+        }
+        else {
+          for (const key in urlUpdateObj) {
+            let value = urlUpdateObj[key];
+            if (typeof value === 'object') {
+              value = JSON.stringify(value);
+            }
+            fetchUrl.searchParams.append(key, value);
+          }
+        }
+
+        console.log( 'FETCH', fetchUrl.href, fetchType, fetchParams );
+
+        const crudResponse = await fetch( fetchUrl.href, fetchParams );
         const crudJson = await crudResponse.json( );
+        console.log( 'RESPONSE', crudJson );
 
         if (CRUD_RESPONSE_RESULT in crudJson) {
           const result = crudJson[CRUD_RESPONSE_RESULT];
           const resultType = crudJson[CRUD_RESPONSE_RESULT_TYPE];
           const success = result[resultType];
-          if (resultType === CRUD_RESPONSE_DELETE && success) {
-            const delId = result[CRUD_RESPONSE_DELETE_ID];
-            setNotionData( x => spliceNotionPage( x, delId ) );
-          }
-          else if (resultType === CRUD_RESPONSE_CREATE && success) {
-            const pg = result[CRUD_RESPONSE_PAGE];
-            const dbId = result[CRUD_RESPONSE_DB_ID];
+          if (success) {
+            if (resultType === CRUD_RESPONSE_DELETE) {
+              const delId = result[CRUD_RESPONSE_DELETE_ID];
+              setNotionData( x => spliceNotionPage( x, delId ) );
+            }
+            else if (resultType === CRUD_RESPONSE_CREATE) {
+              const pg = result[CRUD_RESPONSE_PAGE];
+              const dbId = result[CRUD_RESPONSE_DB_ID];
 
-            const updateNotionData = x => {
-              const clone = structuredClone( x );
-              const dbBlocks = getNotionDataPages( clone, dbId );
-              dbBlocks.unshift( pg );
-              return clone;
-            };
+              const updateNotionData = x => {
+                const clone = structuredClone( x );
+                const dbBlocks = getNotionDataPages( clone, dbId );
+                dbBlocks.unshift( pg );
+                return clone;
+              };
 
-            setNotionData( x => updateNotionData(x) );
-          }
-          else if (resultType === CRUD_RESPONSE_UPDATE && success) {
-            const pg = result[CRUD_RESPONSE_PAGE];
-            const dbId = result[CRUD_RESPONSE_DB_ID];
-            const pgId = result[CRUD_RESPONSE_UPDATE_ID];
+              setNotionData( x => updateNotionData(x) );
+            }
+            else if (resultType === CRUD_RESPONSE_UPDATE) {
+              const pg = result[CRUD_RESPONSE_PAGE];
+              const dbId = result[CRUD_RESPONSE_DB_ID];
+              const pgId = result[CRUD_RESPONSE_UPDATE_ID];
 
-            const updateNotionData = x => {
-              const clone = structuredClone( x );
-              const dbBlocks = getNotionDataPages( clone, dbId );
-              const idx = dbBlocks.findIndex( x => 
-                x[DGMD_METADATA][DGMD_BLOCK_TYPE_ID][DGMD_VALUE] === pgId );
-              if (idx >= 0) {
-                dbBlocks.splice( idx, 1, pg );
-              }
-              return clone;
-            };
+              const updateNotionData = x => {
+                const clone = structuredClone( x );
+                const dbBlocks = getNotionDataPages( clone, dbId );
+                const idx = dbBlocks.findIndex( x => 
+                  x[DGMD_METADATA][DGMD_BLOCK_TYPE_ID][DGMD_VALUE] === pgId );
+                if (idx >= 0) {
+                  dbBlocks.splice( idx, 1, pg );
+                }
+                return clone;
+              };
 
-            setNotionData( x => updateNotionData(x) );
+              setNotionData( x => updateNotionData(x) );
+            }
           }
         }
       }
