@@ -1,12 +1,15 @@
 {
-  "name": "dgmdcc_react",
+  "name": "hooks.dgmd.cc",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
+  "main": "lib/notionDataHook.js",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "rollup": "rollup -c -m"
   },
   "dependencies": {
     "autoprefixer": "10.4.15",
@@ -26,6 +29,17 @@
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "tailwindcss": "3.3.3"
+  },
+  "devDependencies": {
+    "@rollup/plugin-commonjs": "^25.0.7",
+    "@rollup/plugin-json": "^6.1.0",
+    "@rollup/plugin-node-resolve": "^15.2.3",
+    "@rollup/plugin-terser": "^0.4.4",
+    "eslint": "^8",
+    "eslint-config-next": "14.0.4",
+    "eslint-plugin-sort-exports": "^0.8.0",
+    "next": "14.0.4",
+    "rollup": "^4.9.5"
   },
   "packageManager": "yarn@4.0.2",
   "importSort": {
