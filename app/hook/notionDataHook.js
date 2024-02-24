@@ -89,7 +89,7 @@ export const useNotionData = url => {
   const [notionData, setNotionData] = useState( x => null );
   const [filteredNotionData, setFilteredNotionData] = useState( x => {
     return {
-      [IDGMD_FILTERED_DATA]: true
+      [IDGMD_FILTERED_DATA]: false
     };
   } );
 
@@ -272,17 +272,14 @@ export const useNotionData = url => {
           method: 'GET'
         } );
         const parsedJsonObject = await response.json( );
-        const x = structuredClone( parsedJsonObject );
-
-        const validStatus = x[QUERY_RESPONSE_KEY_SUCCESS];
+        const validStatus = parsedJsonObject[QUERY_RESPONSE_KEY_SUCCESS];
         if (isNil(validStatus) || !validStatus) {
           throw new Error( 'invalid data' );
         }
-
-        processQueryData( x );
-        setNotionData( d => x );
+        const pdx = processQueryData( parsedJsonObject );
+        setNotionData( d => pdx );
         setFilteredNotionData( x => searchAndSortData(
-          x, rSearchObj.current, rSortObj.current
+          pdx, rSearchObj.current, rSortObj.current
         ) );
       }
       catch( err ) {
@@ -517,26 +514,29 @@ export const useNotionData = url => {
 };
 
 const searchAndSortData = ( jsonObject, search, sort ) => {
+
   const searchEntries = isNil(search) ? [] : Object.entries(search);
   const sortEntries = isNil(sort) ? [] : Object.entries(sort);
 
   const primaryDbId = getNotionDataPrimaryDbId( jsonObject );
   const relationDbIds = getNotionDataRelationDbIds( jsonObject );
   const allDbClones = [ primaryDbId, ...relationDbIds ].reduce( (acc, dbId) => {
-    const x = structuredClone( jsonObject );
-    acc[dbId] = x[IDGMD_DATA];
+    if (!isNil(dbId)) {
+      const x = structuredClone( jsonObject );
+      acc[dbId] = x[IDGMD_DATA];
 
-    //search
-    for (const [searchDbId, searchObj] of searchEntries) {
-      searchPages( x, searchDbId, searchObj );
-    }
+      //search
+      for (const [searchDbId, searchObj] of searchEntries) {
+        searchPages( x, searchDbId, searchObj );
+      }
 
-    //sort
-    for (const [sortDbId, sortRules] of sortEntries) {
-      const spgs = getNotionDataPages( x, sortDbId );
-      const fields = isArray(sortRules.fields) ? sortRules.fields : [];
-      const directions = isArray(sortRules.directions) ? sortRules.directions : [];
-      sortPages( spgs, fields, directions );
+      //sort
+      for (const [sortDbId, sortRules] of sortEntries) {
+        const spgs = getNotionDataPages( x, sortDbId );
+        const fields = isArray(sortRules.fields) ? sortRules.fields : [];
+        const directions = isArray(sortRules.directions) ? sortRules.directions : [];
+        sortPages( spgs, fields, directions );
+      }
     }
 
     return acc;
@@ -553,7 +553,7 @@ const searchAndSortData = ( jsonObject, search, sort ) => {
   return y;
 };
 
-const processQueryData = ( jsonObject ) => {
+const processQueryData = ( ojsonObject ) => {
   const parsePrimaryDbId = (x) => {
     const job = x[IDGMD_DATA];
     return job[DGMD_PRIMARY_DATABASE][DGMD_DATABASE_ID];
@@ -561,9 +561,11 @@ const processQueryData = ( jsonObject ) => {
     
   const parseRelationDbIds = (x) => {
     const job = x[IDGMD_DATA];
-    return job[DGMD_RELATION_DATABASES].map( db => db[DGMD_DATABASE_ID] );
+    const t = job[DGMD_RELATION_DATABASES].map( db => db[DGMD_DATABASE_ID] );
+    return t;
   };
-  
+
+  const jsonObject = structuredClone( ojsonObject ); 
   delete jsonObject[QUERY_RESPONSE_KEY_SUCCESS];
   jsonObject[IDGMD_FILTERED_DATA] = false;
   jsonObject[IDGMD_LIVE_DATA] = !isNil(jsonObject[PROTO_RESPONSE_KEY_SNAPSHOT_TIMESTAMP]) || true;
