@@ -1,4 +1,4 @@
-import moment from 'moment-timezone';
+import moment from 'moment';
 
 // Define date formats
 export const DATE_PRETTY_SHORT_DATE = 'MMM D, YYYY';

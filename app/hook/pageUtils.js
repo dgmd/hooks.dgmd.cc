@@ -30,7 +30,7 @@ import {
   isNil,
   remove
 } from 'lodash-es';
-import moment from 'moment-timezone';
+import moment from 'moment';
 
 import {
   SEARCH_DEPTH,

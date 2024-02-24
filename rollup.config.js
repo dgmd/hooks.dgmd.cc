@@ -8,7 +8,7 @@ import pkg from './package.json' assert { type: "json" };
 
 export default [
   {
-    input: 'app/hook/notionDataHook.js',
+    input: 'app/export.js',
     output: {
       file: pkg.main,
       format: 'esm'
@@ -17,7 +17,7 @@ export default [
       resolve(),
       commonjs(),
       json(),
-      terser()
+      // terser()
     ],
     external: [
       "react",
