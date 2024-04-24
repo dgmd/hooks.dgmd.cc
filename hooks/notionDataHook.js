@@ -630,7 +630,6 @@ const mmBlocktoNotionBlock = ( block ) => {
       const rvalue = value.reduce( (acc, cur) => {
         acc.push( {
           "type": BLOCK_TYPE_FILE_EXTERNAL,
-          "name": "_",
           [BLOCK_TYPE_FILE_EXTERNAL]: {
             "url": cur
           }
@@ -657,7 +656,6 @@ const mmBlocktoHeaderBlock = ( block ) => {
   if (type === BLOCK_TYPE_FILE_EXTERNAL) {
     return {
       "type": type,
-      "name": "_",
       [BLOCK_TYPE_FILE_EXTERNAL]: {
         "url": value
       }
