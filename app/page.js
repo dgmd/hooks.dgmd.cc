@@ -31,22 +31,35 @@ export default function Home() {
     nataJSON,
     crudding
   ] = useNotionData(
-    'http://localhost:3000/api/query?d=529a56b3cc2b44798a98e5e0c39ffa47&b=false&r=true' );
-    // 'http://localhost:3000/api/prototype?i=ad16fb5b-5a52-4bcc-b663-0ea870565599' );
+    'http://localhost:3000/api/query?d=addba67da21e426eae5f082c1e67cf8e&b=false&r=true' );
 
   const cbUpdatePage = useCallback( (dbId, pageId) => {
     if (!nata || !nata.isValid()) {
       return;
     }
     const updatePageObj = {
-      "Name": {
-        [DGMDCC_BLOCK_TYPE]: BLOCK_TYPE_TITLE,
-        [DGMDCC_BLOCK_VALUE]: "updated" + Math.floor(Math.random() * 100)
-       },
-      "uploady": {
-        [DGMDCC_BLOCK_TYPE]: BLOCK_TYPE_FILES,
-        [DGMDCC_BLOCK_VALUE]: [ "https://www.google.com/images/branding/googlelogo/2x/googlelogo_color_272x92dp.png" ]
+      "Property Listings": {
+        [DGMDCC_BLOCK_TYPE]: BLOCK_TYPE_RELATION,
+        [DGMDCC_BLOCK_VALUE]: [
+          //list of page ids
+          "d21b206c55474c768959c90fedb448d3"
+        ]
       },
+      "Date": {
+        [DGMDCC_BLOCK_TYPE]: BLOCK_TYPE_DATE,
+        [DGMDCC_BLOCK_VALUE]: {
+          [DGMDCC_BLOCK_DATE_START]: "2063-11-02T00:00:00.000-04:00",
+          // [DGMDCC_BLOCK_DATE_END]: "2093-11-02T00:00:00.000-04:00",
+        }
+      }
+      // "Name": {
+      //   [DGMDCC_BLOCK_TYPE]: BLOCK_TYPE_TITLE,
+      //   [DGMDCC_BLOCK_VALUE]: "updated" + Math.floor(Math.random() * 100)
+      //  },
+      // "uploady": {
+      //   [DGMDCC_BLOCK_TYPE]: BLOCK_TYPE_FILES,
+      //   [DGMDCC_BLOCK_VALUE]: [ "https://www.google.com/images/branding/googlelogo/2x/googlelogo_color_272x92dp.png" ]
+      // },
       // "🗿 PUB CUSTOMERS": {
       //   [DGMDCC_BLOCK_TYPE]: BLOCK_TYPE_RELATION,
       //   [DGMDCC_BLOCK_VALUE]: [
@@ -64,7 +77,7 @@ export default function Home() {
     const updatePageMetaObj = {
       'icon': {
         [DGMDCC_BLOCK_TYPE]: BLOCK_TYPE_EMOJI,
-        [DGMDCC_BLOCK_VALUE]: "🤡"
+        [DGMDCC_BLOCK_VALUE]: "🧙"
       },
       'cover': {
         [DGMDCC_BLOCK_TYPE]: BLOCK_TYPE_FILE_EXTERNAL,
@@ -81,10 +94,10 @@ export default function Home() {
       return;
     }
     const createPageObj = {
-      "blurb": {
-        [DGMDCC_BLOCK_TYPE]: BLOCK_TYPE_RICH_TEXT,
-        [DGMDCC_BLOCK_VALUE]: "rich text here, yes there is "+ Math.floor(Math.random() * 100)
-      },
+      // "blurb": {
+      //   [DGMDCC_BLOCK_TYPE]: BLOCK_TYPE_RICH_TEXT,
+      //   [DGMDCC_BLOCK_VALUE]: "rich text here, yes there is "+ Math.floor(Math.random() * 100)
+      // },
       // "yepchecky": {
       //   [DGMDCC_BLOCK_TYPE]: BLOCK_TYPE_CHECKBOX,
       //   [DGMDCC_BLOCK_VALUE]: true
@@ -124,13 +137,13 @@ export default function Home() {
       //   [DGMDCC_BLOCK_TYPE]: BLOCK_TYPE_RICH_TEXT,
       //   [DGMDCC_BLOCK_VALUE]: "rich text here, yes there is"
       // },
-      // "mydate": {
-      //   [DGMDCC_BLOCK_TYPE]: BLOCK_TYPE_DATE,
-      //   [DGMDCC_BLOCK_VALUE]: {
-      //     [DGMDCC_BLOCK_DATE_START]: "2043-11-02T00:00:00.000-04:00",
-      //     // [DGMDCC_BLOCK_DATE_END]: "2093-11-02T00:00:00.000-04:00",
-      //   }
-      // }
+      "Date": {
+        [DGMDCC_BLOCK_TYPE]: BLOCK_TYPE_DATE,
+        [DGMDCC_BLOCK_VALUE]: {
+          [DGMDCC_BLOCK_DATE_START]: "2043-11-02T00:00:00.000-04:00",
+          // [DGMDCC_BLOCK_DATE_END]: "2093-11-02T00:00:00.000-04:00",
+        }
+      }
     };
     const pageMetaObj = {
       'icon': {
