@@ -3,7 +3,6 @@ import {
   DGMD_CURSOR_NEXT
 } from 'constants.dgmd.cc';
 import {
-  isEmpty,
   isNil
 } from 'lodash-es';
 

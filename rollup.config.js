@@ -1,10 +1,11 @@
-import terser from '@rollup/plugin-terser';
+
 
 import commonjs from '@rollup/plugin-commonjs';
 import json from "@rollup/plugin-json";
 import resolve from '@rollup/plugin-node-resolve';
+import terser from '@rollup/plugin-terser';
 
-import pkg from './package.json' assert { type: "json" };
+import pkg from './package.json' with { type: "json" };
 
 export default [
   {
@@ -16,12 +17,42 @@ export default [
     plugins: [
       resolve(),
       commonjs(),
-      json(),
-      // terser()
+      // terser(),
+      json()
     ],
     external: [
       "react",
-      "react-dom"
+      "react-dom",
     ]
   },
 ];
+
+
+
+// import terser from '@rollup/plugin-terser';
+
+// import commonjs from '@rollup/plugin-commonjs';
+// import json from "@rollup/plugin-json";
+// import resolve from '@rollup/plugin-node-resolve';
+
+// import pkg from './package.json' assert { type: "json" };
+
+// export default [
+//   {
+//     input: 'app/export.js',
+//     output: {
+//       file: pkg.main,
+//       format: 'esm'
+//     },
+//     plugins: [
+//       // resolve(),
+//       // commonjs(),
+//       // json(),
+//       // // terser()
+//     ],
+//     external: [
+//       "react",
+//       "react-dom"
+//     ]
+//   },
+// ];
