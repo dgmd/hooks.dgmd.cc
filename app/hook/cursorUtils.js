@@ -23,10 +23,7 @@ const getNotionDataNextCursorObject = (jsonObject) => {
 
 export const hasNotionDataNextCursor = (jsonObject) => {
   const nextCursorData = getNotionDataNextCursorObject(jsonObject);
-  if (!isNil(nextCursorData)) {
-    return nextCursorData[DGMD_CURSOR_NEXT];
-  }
-  return false;
+  return !isNil(nextCursorData);
 };
 
 export const getNotionDataNextCursor = (jsonObject) => {

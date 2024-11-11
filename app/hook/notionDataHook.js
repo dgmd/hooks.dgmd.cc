@@ -355,11 +355,8 @@ export const useNotionData = url => {
           }
         }
 
-        console.log( 'FETCH', fetchUrl.href, fetchType, fetchParams );
-
         const crudResponse = await fetch( fetchUrl.href, fetchParams );
         const crudJson = await crudResponse.json( );
-        console.log( 'RESPONSE', crudJson );
 
         if (CRUD_RESPONSE_RESULT in crudJson) {
           const result = crudJson[CRUD_RESPONSE_RESULT];
@@ -437,24 +434,24 @@ export const useNotionData = url => {
 
         const updateNotionData = x => {
           const x2 = structuredClone( x );
-          processQueryData( y );
+          const z = processQueryData( y );
 
           const primaryDbId = getNotionDataPrimaryDbId( x2 );
           const exsPrimaryPgs = getNotionDataPages( x2, primaryDbId );
-          const newPrimaryPgs = getNotionDataPages( y, primaryDbId );
+          const newPrimaryPgs = getNotionDataPages( z, primaryDbId );
           const mergedPrimaryPgs = mergePageLists( exsPrimaryPgs, newPrimaryPgs );
-          y[IDGMD_DATA][DGMD_PRIMARY_DATABASE][DGMD_BLOCKS] = mergedPrimaryPgs;
+          z[IDGMD_DATA][DGMD_PRIMARY_DATABASE][DGMD_BLOCKS] = mergedPrimaryPgs;
 
           const previewDbIds = getNotionDataRelationDbIds( x2 );
           for (const previewDbId of previewDbIds) {
             const exsPreviewPgs = getNotionDataPages( x2, previewDbId );
-            const newPreviewPgs = getNotionDataPages( y, previewDbId );
+            const newPreviewPgs = getNotionDataPages( z, previewDbId );
             const mergedPreviewPgs = mergePageLists( exsPreviewPgs, newPreviewPgs );
-            y[IDGMD_DATA][DGMD_RELATION_DATABASES].find( 
+            z[IDGMD_DATA][DGMD_RELATION_DATABASES].find( 
               db => db[DGMD_DATABASE_ID] === previewDbId )[DGMD_BLOCKS] = mergedPreviewPgs;
           }
 
-          return y;
+          return z;
         };
 
         setNotionData( x => updateNotionData(x) );
@@ -507,6 +504,7 @@ export const useNotionData = url => {
     handleUpdate,
     handleDelete,
     handleNextCursor,
+    hasNextCursor,
     notionData,
     filteredNotionData,
     updating: rUpdating.current
