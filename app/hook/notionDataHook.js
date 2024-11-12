@@ -504,7 +504,6 @@ export const useNotionData = url => {
     handleUpdate,
     handleDelete,
     handleNextCursor,
-    hasNextCursor,
     notionData,
     filteredNotionData,
     updating: rUpdating.current
