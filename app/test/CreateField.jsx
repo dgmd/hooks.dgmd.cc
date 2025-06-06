@@ -11,6 +11,7 @@ import {
 import {
   getNotionDataPrimaryDbId
 } from '../hook/dataUtils.js';
+import { FileUpload } from './FileUpload';
 import {
   getTextAreaStyle,
   headerStyle,
@@ -22,10 +23,9 @@ export const CreateField = ({notionData, onCreate, updating}) => {
   
     const createTextAreaRef = useRef( null );
     const [createTerms, setCreateTerms] = useState( null );
-
     const [errorState, setErrorState] = useState( x => false );
-
     const [open, setOpen] = useState( x => false );
+    const [files, setFiles] = useState([]);
   
     useLayoutEffect( () => {
       if (!notionData) {
@@ -70,14 +70,17 @@ export const CreateField = ({notionData, onCreate, updating}) => {
                   setErrorState( x => false );
                 } }
               />
+              
+              <FileUpload files={files} setFiles={setFiles} />
+              
               <div
                   style={ linkStyle }
                   onClick={ () => {
                     try {
                       const createText = createTextAreaRef.current.value;
                       const createTextObj = JSON.parse( createText );
-                      onCreate( createTextObj );
-                      setErrorState( x => false );
+                      // Pass the complete file objects with UIDs instead of just the file property
+                      onCreate( createTextObj, files.length > 0 ? files : null );
                     }
                     catch( err ) {
                       console.log( err );
@@ -86,6 +89,7 @@ export const CreateField = ({notionData, onCreate, updating}) => {
                   } }
               >
                   DO THE CREATING
+                  { updating ? '🔄' : '' }
               </div>
             </Fragment>
           ) : 

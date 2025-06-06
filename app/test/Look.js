@@ -7,7 +7,8 @@ export const linkStyle = {
 export const headerStyle = {
   fontSize: '20px',
   fontWeight: 'bold',
-  cursor: 'pointer'
+  cursor: 'pointer',
+  textTransform: 'uppercase'
 };
 
 export const sectionStyle = {
@@ -26,4 +27,12 @@ export const getTextAreaStyle = (valid, updating=false) => {
     margin: '10px',
     color: '#000'
   };
+};
+
+export const panelStyle = {
+  border: '2px solid #ccc',
+  borderRadius: '8px',
+  padding: '10px',
+  marginBottom: '20px',
+  backgroundColor: '#f8f8f8'
 };

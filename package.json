@@ -35,7 +35,7 @@
     "next": "^15.2.4",
     "rollup": "^4.37.0"
   },
-  "packageManager": "yarn@4.7.0",
+  "packageManager": "yarn@4.9.2",
   "importSort": {
     ".js, .jsx, .es6, .es": {
       "style": "module"

@@ -1,5 +1,6 @@
 import {
   DGMD_CURSOR_DATA,
+  DGMD_CURSOR_HAS_MORE,
   DGMD_CURSOR_NEXT
 } from 'constants.dgmd.cc';
 import {
@@ -17,14 +18,26 @@ const getNotionDataNextCursorObject = (jsonObject) => {
   if (isNil(db)) {
     return null;
   }
-  const cursorData = db[DGMD_CURSOR_DATA];
-  return cursorData;
+  return db[DGMD_CURSOR_DATA];
 };
 
 export const hasNotionDataNextCursor = (jsonObject) => {
   const nextCursorData = getNotionDataNextCursorObject(jsonObject);
-  return !isNil(nextCursorData);
+  if (isNil(nextCursorData)) {
+    return false;
+  }
+  if (!(DGMD_CURSOR_HAS_MORE in nextCursorData)) {
+    return false;
+  }
+  if (!nextCursorData[DGMD_CURSOR_HAS_MORE]) {
+    return false;
+  }
+  if (isNil(nextCursorData[DGMD_CURSOR_NEXT])) {
+    return false;
+  }
+  return true;
 };
+  
 
 export const getNotionDataNextCursor = (jsonObject) => {
   if (hasNotionDataNextCursor(jsonObject)) {

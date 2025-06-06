@@ -10,6 +10,7 @@ import {
   useState
 } from 'react';
 
+import { FileUpload } from './FileUpload';
 import {
   getTextAreaStyle,
   linkStyle,
@@ -21,6 +22,7 @@ export const UpdateField = ({dbId, pageId, onUpdate, updating}) => {
   const updateRef = useRef( null );
   const [sortTerms, setSortTerms] = useState( null );
   const [validState, setValidState] = useState( x => true );
+  const [files, setFiles] = useState([]);
 
   useLayoutEffect( () => {
     setSortTerms( x => {
@@ -57,12 +59,15 @@ export const UpdateField = ({dbId, pageId, onUpdate, updating}) => {
           setValidState( x => true );
         } }
       />
+      
+      <FileUpload files={files} setFiles={setFiles} />
+      
       <div
         style={ linkStyle }
         onClick={ () => {
           try {
             const updateTerms = JSON.parse( updateRef.current.value );
-            onUpdate( updateTerms );
+            onUpdate( updateTerms, files.length > 0 ? files : null );
             setValidState( x => true );
           }
           catch (e) {

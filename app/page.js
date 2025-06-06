@@ -1,7 +1,9 @@
 "use client"
 
 import {
-  useEffect
+  useEffect,
+  useMemo,
+  useState
 } from 'react';
 
 import {
@@ -27,106 +29,194 @@ import {
   CursorField
 } from './test/CursorField.jsx';
 import {
+  panelStyle
+} from './test/Look.js';
+import {
   PageComponent
 } from './test/PageComponent.jsx';
-import {
-  SearchField
-} from './test/SearchField.jsx';
-import {
-  SortField
-} from './test/SortField.jsx';
 import {
   UpdateStatus
 } from './test/UpdateStatus.jsx';
 
+// Number of status updates to keep in history
+const STATUS_HISTORY_SIZE = 1000;
+
+// Data status constants
+const STATUS_LOADING = "LOADING";
+const STATUS_CORRUPT = "CORRUPT";
+const STATUS_LOADED = "LOADED";
+
 export default function Home() {
   const {
-    setSearch,
-    hasSearch,
-    setSort,
-    hasSort,
     handleCreate,
     handleUpdate,
     handleDelete,
     handleNextCursor,
+    cancelRequest,
     notionData,
-    filteredNotionData,
-    updating
+    updating,
+    progress,
+    error,
+    result,
+    operationType,
+    operationId
    } = useNotionData(
-    // "http://localhost:3000/api/query?d=ce748dc81b8444aba06b5cf5a0517fd7" );
-    "http://localhost:3000/api/query?d=7254339bc85a4d5dade61f87a2c3a502"
+    // 'https://notion-dgmd-cc.vercel.app/api/snapshot?i=cdf073e1-6ee4-4a9f-b68d-12317a33f2d3&r=true&c=a'
+    // 'https://notion-dgmd-cc.vercel.app/api/query?d=1bc4ffe6f70c80bfa187ca467edf08c6&r=true&n=a'
+    'http://localhost:3001/api/query?d=1bc4ffe6f70c80bfa187ca467edf08c6&r=true&n=a'
   );
+  
+  const handleUpdatex = (upd, files) => {
+    const [id, type, updatePromise] = handleUpdate(upd, files);
 
-  useEffect( () => {
+    updatePromise
+      .then(res => {
+        console.log(`Update successful:`, res);
+      })
+      .catch(err => {
+        console.log(`Update failed:`, err );
+      });
+  };
+
+  // Status history buffer
+  const [statusHistory, setStatusHistory] = useState([]);
+
+  const mUpdateStatus = useMemo(() => {
+    const updates = [`OP_TYPE: ${operationType}`, `OP_ID: ${operationId}`];
+    updates.push(`OP_ACTIVE: ${updating}`);
+    if (error) {
+      updates.push(`OP_ERROR: ${error}`);
+    }
+    if (typeof progress === 'number') {
+      updates.push(`OP_PROGRESS: ${progress}`);
+    }
+    if (result) {
+      updates.push(`OP_RESULT: ${JSON.stringify(result)}`);
+    }
+
+    // Use a bullet point separator for readability
+    return updates.join(' • ');
   }, [
-  ] );
+    updating,
+    progress,
+    error,
+    result,
+    operationType,
+    operationId
+  ]);
+  
+  // Update status history when status changes
+  useEffect(() => {
+    if (mUpdateStatus) {
+      setStatusHistory(prev => {
+        // Create a new entry with timestamp and status
+        const newEntry = {
+          time: new Date().toLocaleTimeString(),
+          status: mUpdateStatus
+        };
+        
+        // Add to beginning of array, limit to STATUS_HISTORY_SIZE entries
+        return [newEntry, ...prev.slice(0, STATUS_HISTORY_SIZE - 1)];
+      });
+    }
+  }, [mUpdateStatus]);
+  
+  // Determine overall data status
+  const dataStatus = useMemo(() => {
+    if (!isNotionDataLoaded(notionData)) return STATUS_LOADING;
+    if (!isNotionDataValid(notionData)) return STATUS_CORRUPT;
+    return STATUS_LOADED;
+  }, [notionData]);
 
-  if (!isNotionDataLoaded(notionData)) {
-    return (<div>loading...</div>);
-  }
-  if (!isNotionDataValid(notionData)) {
-    return (<div>corrupt data</div>);
-  }
+  // Get database ID if loaded and valid
+  const dbId = useMemo(() => {
+    if (dataStatus === STATUS_LOADED) {
+      return getNotionDataPrimaryDbId(notionData);
+    }
+    return null;
+  }, [notionData, dataStatus]);
 
-  const dbId = getNotionDataPrimaryDbId( notionData );
+  // Check if there's a next cursor, but only if data is loaded
+  const hasNextCursor = useMemo(() => {
+    if (dataStatus === STATUS_LOADED) {
+      return hasNotionDataNextCursor(notionData);
+    }
+    return undefined;
+  }, [notionData, dataStatus]);
 
-  return (
+  // Check if data is live, but only if loaded
+  const isLive = useMemo(() => {
+    if (dataStatus === STATUS_LOADED) {
+      return isNotionDataLive(notionData);
+    }
+    return null;
+  }, [notionData, dataStatus]);
 
-    <div>
+  // Status panel component
+  const StatusPanel = () => (
+    <div style={panelStyle}>
 
       <UpdateStatus
-        title={ 'DATA STATUS' }
-        status={ isNotionDataLive(notionData) ? 'LIVE' : 'SNAPSHOT' }
+        title={'UPDATING STATUS'}
+        status={statusHistory}
       />
 
       <UpdateStatus
-        title={ 'UPDATING STATUS' }
-        status={ updating ? 'ACTIVE' : 'INACTIVE' }
+        title={'DATA STATUS'}
+        status={isLive === null ? 'LOADING' : (isLive ? 'LIVE' : 'SNAPSHOT')}
+      />
+
+      <UpdateStatus
+        title={'APP STATUS'}
+        status={dataStatus}
       />
 
       <CursorField
-        hasNextCursor={ hasNotionDataNextCursor(notionData) }
-        onRequestNextCursor={ handleNextCursor }
+        hasNextCursor={hasNextCursor}
+        onRequestNextCursor={handleNextCursor}
       />
 
-      <CreateField
-        notionData={ notionData }
-        onCreate={ handleCreate }
-        updating={ updating }
-      />
+    </div>
+  );
 
-      <SortField
-        notionData={ notionData }
-        onSort={ setSort }
-        hasSort={ hasSort }
-        updating={ updating }
-      />
+  // Main content
+  const MainContent = () => {
+    if (dataStatus !== STATUS_LOADED) {
+      return null;
+    }
+    return (
+      <>
+        <div style={panelStyle}>
+          <CreateField
+            notionData={notionData}
+            onCreate={handleCreate}
+            updating={updating}
+          />
+        </div>
 
-      <SearchField
-        notionData={ notionData }
-        onSearch={ setSearch }
-        hasSearch={ hasSearch }
-        updating={ updating }
-      /> 
+        <div style={panelStyle}>
+          {getNotionDataPages(notionData, dbId).map((page, i) => {
+            const pageId = getPageId(page);
+            return (
+              <PageComponent
+                key={pageId}
+                dbId={dbId}
+                page={page}
+                updating={updating}
+                handleDelete={handleDelete}
+                handleUpdate={handleUpdatex}
+              />
+            );
+          })}
+        </div>
+      </>
+    );
+  };
 
-      <hr/>
-
-      {
-        getNotionDataPages( filteredNotionData, dbId ).map( ( page, i ) => {
-          const pageId = getPageId( page );
-          return (
-            <PageComponent
-              key={ pageId }
-              dbId={ dbId }
-              page={ page }
-              updating={ updating }
-              handleDelete={ handleDelete }
-              handleUpdate={ handleUpdate }
-            />
-          );
-        } )
-      }
-
+  return (
+    <div>
+      <StatusPanel />
+      <MainContent />
     </div>
   );
 };
