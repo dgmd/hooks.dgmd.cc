@@ -1,25 +1,25 @@
 import {
-  useState
+    useState
 } from 'react';
 
 import {
-  getPageId
+    getNotionDataPageId
 } from '../hook/pageUtils.js';
 import {
-  DeleteField
+    DeleteField
 } from './DeleteField.jsx';
 import {
-  headerStyle
+    headerStyle
 } from './Look.js';
 import {
-  UpdateField
+    UpdateField
 } from './UpdateField.jsx';
 
 export const PageComponent = ({page, dbId, handleDelete, handleUpdate, updating}) => {
 
   const [ open, setOpen ] = useState( x => false );
 
-  const pageId = getPageId( page );
+  const pageId = getNotionDataPageId( page );
 
   return (
     <div

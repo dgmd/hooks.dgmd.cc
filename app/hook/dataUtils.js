@@ -2,7 +2,6 @@ import {
   DGMD_BLOCKS,
   DGMD_BLOCK_TYPE_ID,
   DGMD_BLOCK_TYPE_RELATION,
-  DGMD_CURSOR_DATA,
   DGMD_DATABASE_ID,
   DGMD_DATABASE_TITLE,
   DGMD_METADATA,
@@ -19,7 +18,6 @@ import {
 
 import {
   IDGMD_DATA,
-  IDGMD_FILTERED_DATA,
   IDGMD_LIVE_DATA,
   IDGMD_PRIMARY_DBID,
   IDGMD_RELATION_DBIDS,
@@ -39,13 +37,6 @@ export const isNotionDataValid = (jsonObject) => {
 
 export const isNotionDataLive = (jsonObject) => {
   return jsonObject[IDGMD_LIVE_DATA];
-};
-
-export const isNotionDataFiltered = (jsonObject) => {
-  if (isNotionDataValid(jsonObject)) {
-    return jsonObject[IDGMD_FILTERED_DATA];
-  }
-  return false;
 };
   
 export const getNotionDataPrimaryDbId = (jsonObject) => {
@@ -81,12 +72,9 @@ export const getNotionDataDb = (jsonObject, dbId) => {
   return null;
 };
 
-const getData = (jsonObject, dbId) => {
+const getData = (jsonObject) => {
   if (isNotionDataValid(jsonObject)) {
-    const filtered = isNotionDataFiltered( jsonObject );
-    const src = jsonObject[IDGMD_DATA];
-    const job = filtered ? src[dbId] : src;
-    return job;
+    return jsonObject[IDGMD_DATA];
   };
   return null;
 };

@@ -20,7 +20,7 @@ import {
   useNotionData
 } from './hook/notionDataHook.js';
 import {
-  getPageId
+  getNotionDataPageId
 } from './hook/pageUtils.js';
 import {
   CreateField
@@ -61,21 +61,21 @@ export default function Home() {
     operationType,
     operationId
    } = useNotionData(
-    // 'https://notion-dgmd-cc.vercel.app/api/snapshot?i=cdf073e1-6ee4-4a9f-b68d-12317a33f2d3&r=true&c=a'
-    // 'https://notion-dgmd-cc.vercel.app/api/query?d=1bc4ffe6f70c80bfa187ca467edf08c6&r=true&n=a'
     'http://localhost:3001/api/query?d=1bc4ffe6f70c80bfa187ca467edf08c6&r=true&n=a'
   );
   
   const handleUpdatex = (upd, files) => {
-    const [id, type, updatePromise] = handleUpdate(upd, files);
-
-    updatePromise
-      .then(res => {
-        console.log(`Update successful:`, res);
-      })
-      .catch(err => {
-        console.log(`Update failed:`, err );
-      });
+    
+    handleUpdate(upd, files);
+    
+    // const [id, type, updatePromise] = handleUpdate(upd, files);
+    // updatePromise
+    //   .then(res => {
+    //     console.log(`Update successful:`, res);
+    //   })
+    //   .catch(err => {
+    //     console.log(`Update failed:`, err );
+    //   });
   };
 
   // Status history buffer
@@ -196,7 +196,7 @@ export default function Home() {
 
         <div style={panelStyle}>
           {getNotionDataPages(notionData, dbId).map((page, i) => {
-            const pageId = getPageId(page);
+            const pageId = getNotionDataPageId(page);
             return (
               <PageComponent
                 key={pageId}

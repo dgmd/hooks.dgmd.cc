@@ -48,7 +48,6 @@ import {
 
 import {
   IDGMD_DATA,
-  IDGMD_FILTERED_DATA,
   IDGMD_LIVE_DATA,
   IDGMD_PRIMARY_DBID,
   IDGMD_RELATION_DBIDS,
@@ -153,7 +152,8 @@ export const useNotionData = url => {
       files.forEach((fileObj) => {
         if (fileObj.file instanceof File) {
           formData.append(fileObj.uid, fileObj.file, fileObj.file.name);
-        } else if (fileObj.file instanceof Blob) {
+        }
+        else if (fileObj.file instanceof Blob) {
           formData.append(fileObj.uid, fileObj.file, `blob_${fileObj.uid}.dat`);
         }
       });
@@ -161,7 +161,8 @@ export const useNotionData = url => {
     else if (files && files.file) {
       if (files.file instanceof File) {
         formData.append(files.uid, files.file, files.file.name);
-      } else if (files.file instanceof Blob) {
+      }
+      else if (files.file instanceof Blob) {
         formData.append(files.uid, files.file, `blob_${files.uid}.dat`);
       }
     }
@@ -753,7 +754,6 @@ const processQueryData = ( ojsonObject ) => {
 
   const jsonObject = structuredClone( ojsonObject ); 
   delete jsonObject[QUERY_RESPONSE_KEY_SUCCESS];
-  jsonObject[IDGMD_FILTERED_DATA] = false;
   jsonObject[IDGMD_LIVE_DATA] = jsonObject[PROTO_RESPONSE_KEY_SNAPSHOT_TIMESTAMP] ? false : true;
   delete jsonObject[PROTO_RESPONSE_KEY_SNAPSHOT_TIMESTAMP];
   jsonObject[IDGMD_DATA] = jsonObject[QUERY_RESPONSE_KEY_RESULT];

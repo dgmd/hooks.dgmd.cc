@@ -8,7 +8,6 @@ export {
   getNotionDataPages,
   getNotionDataPrimaryDbId,
   getNotionDataRelationDbIds,
-  isNotionDataFiltered,
   isNotionDataLive,
   isNotionDataLoaded,
   isNotionDataValid
@@ -21,4 +20,10 @@ export {
 export {
   useNotionData
 } from './hook/notionDataHook.js';
+export {
+  getNotionDataPageId,
+  getNotionDataPageMetadata,
+  getNotionDataPageProperties,
+  getNotionDataPagePropertyValue
+} from './hook/pageUtils.js';
 
