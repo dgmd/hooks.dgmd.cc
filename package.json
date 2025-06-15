@@ -8,6 +8,7 @@
     "rollup": "rollup -c -m"
   },
   "dependencies": {
+    "@vercel/blob": "^1.1.1",
     "autoprefixer": "^10.4.21",
     "constants.dgmd.cc": "https://github.com/dgmd/constants.dgmd.cc.git",
     "eslint": "^9.23.0",

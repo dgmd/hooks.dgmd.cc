@@ -1,4 +1,7 @@
 import {
+  upload
+} from '@vercel/blob/client';
+import {
   CRUD_PARAM_CREATE_BLOCK_ID,
   CRUD_PARAM_CREATE_CHILDREN,
   CRUD_PARAM_CREATE_META,
@@ -146,31 +149,60 @@ export const useNotionData = url => {
     return currentOpId;
   }, [resetOperationState, getNextOperationId]);
   
-  // Helper function to append files to FormData
-  const appendFilesToFormData = useCallback((formData, files) => {
-    if (Array.isArray(files)) {
-      files.forEach((fileObj) => {
-        if (fileObj.file instanceof File) {
-          formData.append(fileObj.uid, fileObj.file, fileObj.file.name);
-        }
-        else if (fileObj.file instanceof Blob) {
-          formData.append(fileObj.uid, fileObj.file, `blob_${fileObj.uid}.dat`);
-        }
+  // Helper function to upload large files directly to Vercel Blob
+  const uploadToBlob = useCallback(async (fileObj) => {
+    try {
+      const uploadURL = new URL('/api/blob-upload', urlRef.current.origin);
+      const blob = await upload(
+        fileObj.file.name || `blob_${fileObj.uid}.dat`, 
+        fileObj.file, {
+        access: 'public',
+        handleUploadUrl: uploadURL.href
       });
-    }
-    else if (files && files.file) {
-      if (files.file instanceof File) {
-        formData.append(files.uid, files.file, files.file.name);
-      }
-      else if (files.file instanceof Blob) {
-        formData.append(files.uid, files.file, `blob_${files.uid}.dat`);
-      }
+      
+      return {
+        success: true,
+        url: blob.url,
+        fieldName: fileObj.uid,
+        filename: fileObj.file.name || `blob_${fileObj.uid}.dat`,
+        uploadType: 'vercel-blob',
+        originalFile: fileObj
+      };
+    } 
+    catch (error) {
+      console.error('Blob upload failed:', error);
+      throw error;
     }
   }, []);
+
+  // Helper function to process files and upload all to blob storage
+  const processFilesForUpload = useCallback(async (files) => {
+    if (!files) return { blobUploads: [] };
+    
+    const fileArray = Array.isArray(files) ? files : [files];
+    
+    const blobUploads = [];
+    for (const fileObj of fileArray) {
+      if (fileObj.file instanceof File || fileObj.file instanceof Blob) {
+        try {
+          const blobResult = await uploadToBlob(fileObj);
+          blobUploads.push(blobResult);
+        }
+        catch (error) {
+          console.error('Blob upload failed:', error);
+          throw error;
+        }
+      }
+    }
+    
+    return { blobUploads };
+  }, [
+    uploadToBlob
+  ]);
   
   // Helper function to create and configure XHR requests
   const createXhrRequest = useCallback((method, url, options = {}) => {
-    const { onProgress, onLoad, onError, formData, jsonData } = options;
+    const { onProgress, onLoad, onError, jsonData } = options;
     
     const xhr = new XMLHttpRequest();
     activeRequestRef.current = xhr;
@@ -180,7 +212,8 @@ export const useNotionData = url => {
     if (onProgress) {
       if (method === 'GET') {
         xhr.onprogress = onProgress;
-      } else {
+      }
+      else {
         xhr.upload.onprogress = onProgress;
       }
     }
@@ -194,13 +227,14 @@ export const useNotionData = url => {
           try {
             const response = JSON.parse(xhr.responseText);
             onLoad(response);
-          } catch(err) {
-            console.log(err);
+          } 
+          catch(err) {
             setError(err.message || 'Error processing response');
             if (onError) onError(err);
           }
         }
-      } else {
+      } 
+      else {
         const errorMsg = `HTTP error: ${xhr.status}`;
         setError(errorMsg);
         if (onError) onError(new Error(errorMsg));
@@ -214,7 +248,6 @@ export const useNotionData = url => {
     // Set up error handler
     xhr.onerror = () => {
       const errorMsg = 'Network error';
-      console.log(errorMsg);
       setError(errorMsg);
       setProgress(100); // Set progress to 100 even on error
       setUpdating(false);
@@ -223,13 +256,12 @@ export const useNotionData = url => {
       if (onError) onError(new Error(errorMsg));
     };
     
-    // Send the request with the appropriate data
-    if (formData) {
-      xhr.send(formData);
-    } else if (jsonData) {
+    // Send the request with JSON data
+    if (jsonData) {
       xhr.setRequestHeader('Content-Type', 'application/json');
       xhr.send(JSON.stringify(jsonData));
-    } else {
+    } 
+    else {
       xhr.send();
     }
     
@@ -273,7 +305,12 @@ export const useNotionData = url => {
         onError: reject
       });
     });
-  }, [cancelRequest, prepareOperation, enrichResult, createXhrRequest]);
+  }, [
+    cancelRequest,
+    prepareOperation,
+    enrichResult,
+    createXhrRequest
+  ]);
 
   // Initial data load
   useEffect(() => {
@@ -284,7 +321,7 @@ export const useNotionData = url => {
   }, [url, loadNotionData]);
 
   // Handle create operation
-  const handleCreate = useCallback((update, files = null) => {
+  const handleCreate = useCallback(async (update, files = null) => {
     if (updating) {
       cancelRequest();
     }
@@ -311,79 +348,71 @@ export const useNotionData = url => {
     if (isNotionDataLive(notionData)) {
       setUpdating(true);
       
-      const createPromise = new Promise((resolve, reject) => {
-        const createUrl = new URL('/api/update', urlRef.current.origin);
-        const hasFiles = files && (Array.isArray(files) ? files.length > 0 : files.file instanceof File || files.file instanceof Blob);
-        
-        // Prepare data
-        let formData = null;
-        let jsonData = null;
-        
-        if (hasFiles) {
-          formData = new FormData();
+      const createPromise = new Promise(async (resolve, reject) => {
+        try {
+          // Process files - all files go to blob storage
+          const { blobUploads } = await processFilesForUpload(files);
           
-          // Add payload data as JSON
-          formData.append(CRUD_PARAM_CREATE_BLOCK_ID, dbId);
-          formData.append(
-            CRUD_PARAM_CREATE_CHILDREN, 
-            JSON.stringify(structuredClone(pgUpdateProps))
-          );
-          formData.append(
-            CRUD_PARAM_CREATE_META, 
-            JSON.stringify(structuredClone(pgUpdateMetas))
-          );
+          const createUrl = new URL('/api/update', urlRef.current.origin);
           
-          // Add files to FormData using helper function
-          appendFilesToFormData(formData, files);
-        } else {
-          jsonData = {
+          // Prepare JSON data
+          const jsonData = {
             [CRUD_PARAM_CREATE_BLOCK_ID]: dbId,
             [CRUD_PARAM_CREATE_META]: structuredClone(pgUpdateMetas),
             [CRUD_PARAM_CREATE_CHILDREN]: structuredClone(pgUpdateProps)
           };
-        }
-        
-        createXhrRequest('POST', createUrl.href, {
-          formData,
-          jsonData,
-          onProgress: (event) => {
-            if (event.lengthComputable) {
-              const rawPercentComplete = Math.round((event.loaded / event.total) * 50);
-              const cappedPercentComplete = Math.min(50, rawPercentComplete);
-              setProgress(cappedPercentComplete);
-            }
-          },
-          onLoad: (crudJson) => {
-            if (CRUD_RESPONSE_RESULT in crudJson) {
-              const result = crudJson[CRUD_RESPONSE_RESULT];
-              const resultType = crudJson[CRUD_RESPONSE_RESULT_TYPE];
-              const success = result[resultType];
-              
-              if (success && resultType === CRUD_RESPONSE_CREATE) {
-                const pg = result[CRUD_RESPONSE_PAGE];
-                const dbId = result[CRUD_RESPONSE_DB_ID];
-                
-                setNotionData(x => {
-                  const clone = structuredClone(x);
-                  const dbBlocks = getNotionDataPages(clone, dbId);
-                  dbBlocks.unshift(pg);
-                  return clone;
-                });
-                
-                resolve(enrichResult(result, CREATE, currentOpId));
-              } else {
-                const errorMsg = 'Create operation failed';
-                setError(errorMsg);
-                reject(new Error(errorMsg));
+          
+          // Add blob upload results
+          if (blobUploads.length > 0) {
+            jsonData.blobUploads = blobUploads;
+          }
+          
+          createXhrRequest('POST', createUrl.href, {
+            jsonData,
+            onProgress: (event) => {
+              if (event.lengthComputable) {
+                const rawPercentComplete = Math.round((event.loaded / event.total) * 50);
+                const cappedPercentComplete = Math.min(50, rawPercentComplete);
+                setProgress(cappedPercentComplete);
               }
-            }
-          },
-          onError: reject
-        });
+            },
+            onLoad: (crudJson) => {
+              if (CRUD_RESPONSE_RESULT in crudJson) {
+                const result = crudJson[CRUD_RESPONSE_RESULT];
+                const resultType = crudJson[CRUD_RESPONSE_RESULT_TYPE];
+                const success = result[resultType];
+                
+                if (success && resultType === CRUD_RESPONSE_CREATE) {
+                  const pg = result[CRUD_RESPONSE_PAGE];
+                  const dbId = result[CRUD_RESPONSE_DB_ID];
+                  
+                  setNotionData(x => {
+                    const clone = structuredClone(x);
+                    const dbBlocks = getNotionDataPages(clone, dbId);
+                    dbBlocks.unshift(pg);
+                    return clone;
+                  });
+                  
+                  resolve(enrichResult(result, CREATE, currentOpId));
+                }
+                else {
+                  const errorMsg = 'Create operation failed';
+                  setError(errorMsg);
+                  reject(new Error(errorMsg));
+                }
+              }
+            },
+            onError: reject
+          });
+        }
+        catch (error) {
+          reject(error);
+        }
       });
       
       return [currentOpId, createPromise];
-    } else {
+    } 
+    else {
       // For non-live data, handle locally
       setProgress(0);
       setUpdating(true);
@@ -411,10 +440,19 @@ export const useNotionData = url => {
       const result = { page };
       return [currentOpId, Promise.resolve(enrichResult(result, CREATE, currentOpId))];
     }
-  }, [notionData, updating, urlRef, cancelRequest, prepareOperation, appendFilesToFormData, createXhrRequest, enrichResult]);
+  }, [
+    notionData, 
+    updating, 
+    urlRef, 
+    cancelRequest, 
+    prepareOperation, 
+    processFilesForUpload,
+    createXhrRequest,
+    enrichResult
+  ]);
 
   // Handle update operation
-  const handleUpdate = useCallback((update, files = null) => {
+  const handleUpdate = useCallback(async (update, files = null) => {
     if (updating) {
       cancelRequest();
     }
@@ -448,85 +486,76 @@ export const useNotionData = url => {
     if (isNotionDataLive(notionData)) {
       setUpdating(true);
       
-      const updatePromise = new Promise((resolve, reject) => {
-        const updateUrl = new URL('/api/update', urlRef.current.origin);
-        const hasFiles = files && (Array.isArray(files) ? files.length > 0 : files.file instanceof File || files.file instanceof Blob);
-        
-        // Prepare data
-        let formData = null;
-        let jsonData = null;
-        
-        if (hasFiles) {
-          formData = new FormData();
+      const updatePromise = new Promise(async (resolve, reject) => {
+        try {
+          // Process files - all files go to blob storage
+          const { blobUploads } = await processFilesForUpload(files);
           
-          // Add payload data
-          formData.append(CRUD_PARAM_UPDATE_BLOCK_ID, pgId);
-          formData.append(
-            CRUD_PARAM_UPDATE_BLOCK, 
-            JSON.stringify(structuredClone(pgUpdateProps))
-          );
-          formData.append(
-            CRUD_PARAM_UPDATE_META, 
-            JSON.stringify(structuredClone(pgUpdateMetas))
-          );
+          const updateUrl = new URL('/api/update', urlRef.current.origin);
           
-          // Add files using helper function
-          appendFilesToFormData(formData, files);
-        } else {
-          jsonData = {
+          // Prepare JSON data
+          const jsonData = {
             [CRUD_PARAM_UPDATE_BLOCK_ID]: pgId,
             [CRUD_PARAM_UPDATE_BLOCK]: structuredClone(pgUpdateProps),
             [CRUD_PARAM_UPDATE_META]: structuredClone(pgUpdateMetas)
           };
-        }
-        
-        createXhrRequest('PUT', updateUrl.href, {
-          formData,
-          jsonData,
-          onProgress: (event) => {
-            if (event.lengthComputable) {
-              const percentComplete = Math.round((event.loaded / event.total) * 100);
-              setProgress(percentComplete);
-            }
-          },
-          onLoad: (crudJson) => {
-            if (CRUD_RESPONSE_RESULT in crudJson) {
-              const result = crudJson[CRUD_RESPONSE_RESULT];
-              const resultType = crudJson[CRUD_RESPONSE_RESULT_TYPE];
-              const success = result[resultType];
-              
-              if (success && resultType === CRUD_RESPONSE_UPDATE) {
-                const pg = result[CRUD_RESPONSE_PAGE];
-                const dbId = result[CRUD_RESPONSE_DB_ID];
-                const pgId = result[CRUD_RESPONSE_UPDATE_ID];
-                
-                setNotionData(x => {
-                  const clone = structuredClone(x);
-                  const dbBlocks = getNotionDataPages(clone, dbId);
-                  const idx = dbBlocks.findIndex(x => 
-                    x[DGMD_METADATA][DGMD_BLOCK_TYPE_ID][DGMD_VALUE] === pgId);
-                  if (idx >= 0) {
-                    dbBlocks.splice(idx, 1, pg);
-                  }
-                  return clone;
-                });
-                
-                const resultObj = {
-                  metas: result[CRUD_RESPONSE_UPDATE_METAS].length,
-                  blocks: result[CRUD_RESPONSE_UPDATE_BLOCKS].length,
-                  pageId: pgId,
-                  dbId: dbId,
-                };
-                resolve(enrichResult(resultObj, UPDATE, currentOpId));
-              } else {
-                const errorMsg = 'Update operation failed';
-                setError(errorMsg);
-                reject(new Error(errorMsg));
+          
+          // Add blob upload results
+          if (blobUploads.length > 0) {
+            jsonData.blobUploads = blobUploads;
+          }
+          
+          createXhrRequest('PUT', updateUrl.href, {
+            jsonData,
+            onProgress: (event) => {
+              if (event.lengthComputable) {
+                const percentComplete = Math.round((event.loaded / event.total) * 100);
+                setProgress(percentComplete);
               }
-            }
-          },
-          onError: reject
-        });
+            },
+            onLoad: (crudJson) => {
+              if (CRUD_RESPONSE_RESULT in crudJson) {
+                const result = crudJson[CRUD_RESPONSE_RESULT];
+                const resultType = crudJson[CRUD_RESPONSE_RESULT_TYPE];
+                const success = result[resultType];
+                
+                if (success && resultType === CRUD_RESPONSE_UPDATE) {
+                  const pg = result[CRUD_RESPONSE_PAGE];
+                  const dbId = result[CRUD_RESPONSE_DB_ID];
+                  const pgId = result[CRUD_RESPONSE_UPDATE_ID];
+                  
+                  setNotionData(x => {
+                    const clone = structuredClone(x);
+                    const dbBlocks = getNotionDataPages(clone, dbId);
+                    const idx = dbBlocks.findIndex(x => 
+                      x[DGMD_METADATA][DGMD_BLOCK_TYPE_ID][DGMD_VALUE] === pgId);
+                    if (idx >= 0) {
+                      dbBlocks.splice(idx, 1, pg);
+                    }
+                    return clone;
+                  });
+                  
+                  const resultObj = {
+                    metas: result[CRUD_RESPONSE_UPDATE_METAS].length,
+                    blocks: result[CRUD_RESPONSE_UPDATE_BLOCKS].length,
+                    pageId: pgId,
+                    dbId: dbId,
+                  };
+                  resolve(enrichResult(resultObj, UPDATE, currentOpId));
+                } 
+                else {
+                  const errorMsg = 'Update operation failed';
+                  setError(errorMsg);
+                  reject(new Error(errorMsg));
+                }
+              }
+            },
+            onError: reject
+          });
+        } 
+        catch (error) {
+          reject(error);
+        }
       });
       
       return [currentOpId, updatePromise];
@@ -561,7 +590,16 @@ export const useNotionData = url => {
       
       return [currentOpId, Promise.resolve(enrichResult({}, UPDATE, currentOpId))];
     }
-  }, [notionData, updating, urlRef, cancelRequest, prepareOperation, appendFilesToFormData, createXhrRequest, enrichResult]);
+  }, [
+    notionData,
+    updating,
+    urlRef,
+    cancelRequest,
+    prepareOperation,
+    processFilesForUpload,
+    createXhrRequest,
+    enrichResult
+  ]);
 
   const handleDelete = useCallback((dbId, pgId) => {
     if (updating) {
@@ -610,7 +648,8 @@ export const useNotionData = url => {
                   success: true
                 };
                 resolve(enrichResult(resultObj, DELETE, currentOpId));
-              } else {
+              } 
+              else {
                 const errorMsg = 'Delete operation failed';
                 setError(errorMsg);
                 reject(new Error(errorMsg));
@@ -649,7 +688,15 @@ export const useNotionData = url => {
         promise: Promise.resolve(enrichedResult)
       };
     }
-  }, [notionData, updating, urlRef, cancelRequest, prepareOperation, createXhrRequest, enrichResult]);
+  }, [
+    notionData, 
+    updating, 
+    urlRef, 
+    cancelRequest, 
+    prepareOperation, 
+    createXhrRequest, 
+    enrichResult
+  ]);
 
   // Handle next cursor
   const handleNextCursor = useCallback(() => {
@@ -682,7 +729,8 @@ export const useNotionData = url => {
           if (isNil(validStatus) || !validStatus) {
             setError('Invalid data');
             reject(new Error('Invalid data'));
-          } else {
+          }
+          else {
             setNotionData(x => {
               const x2 = structuredClone(x);
               const z = processQueryData(cursorJson);
@@ -721,7 +769,13 @@ export const useNotionData = url => {
     });
     
     return [currentOpId, cursorPromise];
-  }, [notionData, updating, urlRef, prepareOperation, createXhrRequest]);
+  }, [
+    notionData,
+    updating,
+    urlRef,
+    prepareOperation,
+    createXhrRequest
+  ]);
 
   return {
     handleCreate,
