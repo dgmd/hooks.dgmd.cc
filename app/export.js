@@ -15,6 +15,7 @@ export {
 export {
   DATE_PRETTY_SHORT_DATE,
   DATE_PRETTY_SHORT_NUMERIC_DATE,
+  formatDateForNotion,
   prettyPrintNotionDate
 } from './hook/dateUtils.js';
 export {
