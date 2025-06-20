@@ -23,6 +23,7 @@ import {
   DGMD_BLOCKS,
   DGMD_BLOCK_TYPE_ID,
   DGMD_DATABASE_ID,
+  DGMD_INCLUDE_RELATION_DATABASES,
   DGMD_METADATA,
   DGMD_PAGE_ID,
   DGMD_PRIMARY_DATABASE,
@@ -799,7 +800,7 @@ const processQueryData = ( ojsonObject ) => {
     const job = x[IDGMD_DATA];
     return job[DGMD_PRIMARY_DATABASE][DGMD_DATABASE_ID];
   };
-    
+
   const parseRelationDbIds = (x) => {
     const job = x[IDGMD_DATA];
     const t = job[DGMD_RELATION_DATABASES].map( db => db[DGMD_DATABASE_ID] );
@@ -814,6 +815,7 @@ const processQueryData = ( ojsonObject ) => {
   delete jsonObject[QUERY_RESPONSE_KEY_RESULT];
   jsonObject[IDGMD_VALID_DATA] = true;
   jsonObject[IDGMD_PRIMARY_DBID] = parsePrimaryDbId( jsonObject );
-  jsonObject[IDGMD_RELATION_DBIDS] = parseRelationDbIds( jsonObject );
+  const hasRels = jsonObject[DGMD_INCLUDE_RELATION_DATABASES] && Array.isArray(jsonObject[DGMD_RELATION_DATABASES]) || false;
+  jsonObject[IDGMD_RELATION_DBIDS] = hasRels ? parseRelationDbIds( jsonObject ) : [];
   return jsonObject;
 };
