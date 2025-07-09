@@ -46,7 +46,6 @@ export default function ProgressUpdater(props) {
         operationType,
         operationId,
     } = useNotionData(
-        "https://notion-dgmd-cc.vercel.app/api/query?d=20e4ffe6f70c808d8608ee542cfb6d9d&r=true&n=a"
     )
     const loaded = isNotionDataLoaded(notionData)
     const valid = isNotionDataValid(notionData)
@@ -73,6 +72,12 @@ export default function ProgressUpdater(props) {
         setUIState(UISTATE_HOME)
     }, [loaded, valid])
 
+    useEffect(() => {
+        console.log( 'result of last operation', result );
+    }, [
+        result
+    ] );
+
     const primaryDbId = getNotionDataPrimaryDbId(notionData)
 
     const handleFileChange = (event) => {
@@ -87,7 +92,7 @@ export default function ProgressUpdater(props) {
         }
     }
 
-    const handleAddClick = () => {
+    const handleAddClick = async () => {
         const { isoUTC, isoLocal } = formatDateForNotion(newDate)
         const properties = {
             date: {
@@ -106,7 +111,9 @@ export default function ProgressUpdater(props) {
             DATABASE_ID: primaryDbId,
             PROPERTIES: properties,
         }
-        handleCreate(data, newAttachments)
+        const [num, creationPromise] = await handleCreate(data, newAttachments)
+        const createdResult = await creationPromise
+        console.log( 'result of last operation (inline)', createdResult );
     }
 
     // Handle edit field changes
@@ -164,7 +171,6 @@ export default function ProgressUpdater(props) {
 
     // Handle update
     const handleUpdateClick = (pg) => {
-
         const pgId = getNotionDataPageId(pg)
         const values = editValues[pgId]
         if (!values) return
