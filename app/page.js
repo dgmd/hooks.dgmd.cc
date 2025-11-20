@@ -63,19 +63,28 @@ export default function Home() {
    } = useNotionData(
     'http://localhost:3001/api/query?d=1bc4ffe6f70c80bfa187ca467edf08c6&r=true&n=a'
   );
+
+  const handleCreatex = (data, files) => {
+    const [id, createPromise] = handleCreate(data, files);
+    createPromise
+      .then(res => {
+        console.log(`Create successful:`, res);
+      })
+      .catch(err => {
+        console.log(`Create failed:`, err );
+      });
+  }
   
   const handleUpdatex = (upd, files) => {
     
-    handleUpdate(upd, files);
-    
-    // const [id, type, updatePromise] = handleUpdate(upd, files);
-    // updatePromise
-    //   .then(res => {
-    //     console.log(`Update successful:`, res);
-    //   })
-    //   .catch(err => {
-    //     console.log(`Update failed:`, err );
-    //   });
+    const [id, updatePromise] = handleUpdate(upd, files);
+    updatePromise
+      .then(res => {
+        console.log(`Update successful:`, res);
+      })
+      .catch(err => {
+        console.log(`Update failed:`, err );
+      });
   };
 
   // Status history buffer
@@ -189,7 +198,7 @@ export default function Home() {
         <div style={panelStyle}>
           <CreateField
             notionData={notionData}
-            onCreate={handleCreate}
+            onCreate={handleCreatex}
             updating={updating}
           />
         </div>

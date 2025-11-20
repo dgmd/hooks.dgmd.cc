@@ -322,7 +322,7 @@ export const useNotionData = url => {
   }, [url, loadNotionData]);
 
   // Handle create operation
-  const handleCreate = useCallback(async (update, files = null) => {
+  const handleCreate = useCallback((update, files = null) => {
     if (updating) {
       cancelRequest();
     }
@@ -453,7 +453,7 @@ export const useNotionData = url => {
   ]);
 
   // Handle update operation
-  const handleUpdate = useCallback(async (update, files = null) => {
+  const handleUpdate = useCallback((update, files = null) => {
     if (updating) {
       cancelRequest();
     }
@@ -609,11 +609,10 @@ export const useNotionData = url => {
     
     const pg = getNotionDataPage(notionData, dbId, pgId);
     if (isNil(pg)) {
-      return {
-        id: null,
-        type: null,
-        promise: Promise.resolve(false)
-      };
+      return [
+        null,
+        Promise.resolve(false)
+      ];
     }
     
     const currentOpId = prepareOperation(DELETE);
@@ -661,11 +660,10 @@ export const useNotionData = url => {
         });
       });
       
-      return {
-        id: currentOpId,
-        type: DELETE,
-        promise: deletePromise
-      };
+      return [
+        currentOpId,
+        deletePromise
+      ];
     }
     else {
       // For non-live mode
@@ -683,11 +681,10 @@ export const useNotionData = url => {
       };
       const enrichedResult = enrichResult(resultObj, DELETE, currentOpId);
       
-      return {
-        id: currentOpId,
-        type: DELETE,
-        promise: Promise.resolve(enrichedResult)
-      };
+      return [
+        currentOpId,
+        Promise.resolve(enrichedResult)
+      ];
     }
   }, [
     notionData, 
